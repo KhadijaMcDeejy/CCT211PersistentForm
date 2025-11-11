@@ -1,4 +1,6 @@
-INGREDIENTS ==========================================================================================================
+===========================
+INGREDIENTS
+===========================
 Calcifer's Fallen Ember
 Witch-of-the-Waste's Perfume Vapor
 Moving Castle's Rust Flake
@@ -8,8 +10,16 @@ Royal Dog Whisker
 Pendant's Crystallized Starlight
 Royal Intrigue Berry
 Steam-Pipe Condensate
+Mimic's Molted Feather
+Turnip-Head's Nail
+Heen's Loyalty Tear
+Door-Knob's Whisper
+Sulliman's Faded Sigil
+Cursed Contract Ink
 
-POTIONS ================================================================================================================
+===========================
+POTIONS
+===========================
 Potion of Hearth's Homecoming
     Effect: When consumed, the next door you open will lead directly to the place you truly consider "home."
     - Calcifer's Fallen Ember
@@ -48,3 +58,31 @@ Concoction of the Courtier's Clarity
     - Royal Intrigue Berry
     - Royal Dog Whisker
     - Tear of a Freed Scarecrow
+
+Elixir of Winged Whispers
+    Effect: Grants the drinker the ability to understand and speak the language of birds and minor spirits for one hour.
+    - Mimic's Molted Feather
+    - Heen's Loyalty Tear
+
+Salve of the Stolen Face
+    Effect: Allows the user to perfectly mimic another person's voice and appearance for a short time.
+    - Witch-of-the-Waste's Perfume Vapor
+    - Sulliman's Faded Sigil
+    - Mimic's Molted Feather
+
+Tonic of Unraveling Threads
+    Effect: When poured on a magical construct or cursed object, it temporarily suspends its animation or enchantment.
+    - Turnip-Head's Nail
+    - Steam-Pipe Condensate
+    - Moving Castle's Rust Flake
+
+Philter of the Wandering Castle
+    Effect: Causes a single building or vehicle to shift its location randomly every few minutes for one hour.
+    - Door-Knob's Whisper
+    - Calcifer's Fallen Ember
+    - Seven-League Boot Leather Scrap
+
+Ink of Binding Vows
+    Effect: Any contract written with this ink is magically binding; breaking it carries a severe, pre-defined consequence.
+    - Cursed Contract Ink
+    - Pendant's Crystallized Starlight
