@@ -3,9 +3,24 @@
 
 from cProfile import label
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 
+#GLOBAL THEME (consistent widget rendering on macOS + Windows)
+def configure_style(root):
+    style = ttk.Style(root)
+    style.theme_use("clam")   #uses the "CLAM" style to ensure its consistent across both OS systems; replaces the default Aqua theme on macOS
 
+    #Configures consistent styling across ALL widgets
+    style.configure("TEntry", padding = 4)
+    style.configure("TButton", padding = 6)
+    style.configure("TLabel", background = "white")
+    style.configure("NavButton.TButton", background = "white")
+
+    #NAVIGATION Styling
+    style.configure("NavButton.TButton", font = ("Verdana", 10), background = "white") #when unactive
+    style.configure("BoldNav.TButton", font = ("Verdana", 10, "bold"), background = "white") #when active
+
+#the NAVIGATION 
 class NavigationBar(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg = "white", bd = .5, relief = "solid")
@@ -20,29 +35,20 @@ class NavigationBar(tk.Frame):
 
         #MENU ITEMS (displayed using button widgets to show user activity and sub options were not needed)
         for text, page_class in nav_items:
-            navBtn = tk.Button(
+            navBtn = ttk.Button(
                 self,
                 text = text,
-                font = ("Verdana", 10),
-                bg = "white",
-                bd = 0,
-                padx = 10,
-                pady = 5,
-                activebackground = "#e5e5e5",
+                style = "NavButton.TButton",
                 command = lambda p = page_class: controller.show_frame(p)
             )
             navBtn.pack(side = "left", padx = 18)
             self.nav_buttons[page_class] = navBtn
-        
-        #
-        username = controller.username
 
         #WELCOME MENU item (displayed on the right side of the menu; welcomes whichever user who signed in)
-        self.welcome_label = tk.Label(
+        self.welcome_label = ttk.Label(
             self,
             text = "Welcome!",
             font = ("Verdana", 10, "italic"),
-            bg = "white"
         )
         self.welcome_label.pack(side = "right", padx = 18)
 
@@ -50,19 +56,16 @@ class NavigationBar(tk.Frame):
     def update_active(self, active_page):
         for page_class, button in self.nav_buttons.items():
             if page_class == active_page:
-                button.config(font=("Verdana", 10, "bold"), fg = "#000")
+                button.config(style = "BoldNav.TButton")
             else:
-                button.config(font = ("Verdana", 10), fg = "#666")
-
-    def update_username(self, username):
-        self.welcome_label.config(text = f"Welcome {username.capitalize()}!")
+                button.config(style = "NavButton.TButton")
     
     def refresh_username(self):
         username = self.controller.username
         if username:
-            self.welcome_label.config(text=f"Welcome {username.capitalize()}!")
+            self.welcome_label.config(text = f"Welcome {username.capitalize()}!")
         else:
-            self.welcome_label.config(text="Welcome!")
+            self.welcome_label.config(text = "Welcome!")
 
 #
 class CalcifersLedgerApp:
@@ -109,62 +112,53 @@ class LoginPage(tk.Frame):
         super().__init__(parent, bg = "white")
         self.controller = controller
 
-        #Creates a 3x3 grid to display the login widgets in the center of the frame
-        for r in range(3):
-            self.grid_rowconfigure(r, weight=1)
-        for c in range(3):
-            self.grid_columnconfigure(c, weight=1)
-
-        center_frame = tk.Frame(self, bg = "white") #placed in the middle row (row = 1, col = 1)
-        center_frame.grid(row = 1, column = 1) #places the frame directly into the grid      
+        center_frame = tk.Frame(self, bg = "white")
+        center_frame.place(relx = 0.5, rely = 0.5, anchor = "center")
 
         #LOGIN TITLE
         title_frame = tk.Frame(center_frame, bg = "white", bd = 2, relief = "solid")
-        title_frame.pack(pady = (0, 16), anchor = "center")
+        title_frame.pack(pady = (0, 16))
 
-        tk.Label( #HEADER TITLE
+        ttk.Label( #HEADER TITLE
             title_frame,
             text = "Calcifer’s Ledger",
             font = ("Palatino", 50, "bold"),
-            bg = "white"
         ).pack()
 
-        tk.Label( #SUBHEADER TITLE
+        ttk.Label( #SUBHEADER TITLE
             title_frame,
             text = "Magic Record Keeping System",
             font = ("Verdana", 13),
-            bg = "white"
         ).pack(pady=(0, 8))
 
         #FORM area (centered within center_frame)
         form_frame = tk.Frame(center_frame, bg = "white")
         form_frame.pack()
 
-        #LOGIN
+        #LOGIN ROW
         login_row = tk.Frame(form_frame, bg = "white") #the login form row
         login_row.pack(anchor = "center", pady = 6)
-        tk.Label(login_row, text = "Login:", font = ("Verdana", 12), bg = "white").pack(side = "left", padx = (0, 8))
-        self.login_entry = tk.Entry(login_row, width = 25, font = ("Verdana", 12), bd = 2, relief = "groove")
+        ttk.Label(login_row, text = "Login:", font = ("Verdana", 12)).pack(side = "left", padx = (0, 8))
+        #LOGIN ENTRY
+        self.login_entry = ttk.Entry(login_row, width = 25)
         self.login_entry.pack(side = "left")
 
-        #PASSWORD
+        #PASSWORD ROW
         pass_row = tk.Frame(form_frame, bg = "white") #the password form row
         pass_row.pack(anchor = "center", pady = 6)
-        tk.Label(pass_row, text = "Password:", font = ("Verdana", 12), bg = "white").pack(side = "left", padx = (0, 8))
-        self.password_entry = tk.Entry(pass_row, width = 25, font = ("Verdana", 12), bd=2, relief = "groove", show = "*")
+        ttk.Label(pass_row, text = "Password:", font = ("Verdana", 12)).pack(side = "left", padx = (0, 8))
+        #PASS ENTRY
+        self.password_entry = ttk.Entry(pass_row, width = 25, show = "*")
         self.password_entry.pack(side = "left")
 
         #BUTTON
         btn_row = tk.Frame(center_frame, bg = "white")
         btn_row.pack(pady = 14)
-        login_btn = tk.Button(
+        ttk.Button(
             btn_row,
             text = "Login",
-            font = ("Verdana", 12, "bold"),
-            bg = "#f4a261",
             command = self.check_login
-        )
-        login_btn.pack()
+        ).pack()
 
      def check_login(self):
         username = self.login_entry.get().strip().lower()
@@ -189,9 +183,9 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
 
         #initializes the NAVIGATION BAR in the overview page
         self.nav_frame = NavigationBar(self, controller)
-        self.nav_frame.pack(fill = "x", pady=5)
+        self.nav_frame.pack(fill = "x", pady = 5)
 
-        label1 = tk.Label(self, text="OverviewPage test").pack() #TESTING
+        label1 = ttk.Label(self, text = "OverviewPage test").pack() #TESTING
 
 class PotionPantryPage(tk.Frame): #INVENTORY 
     def __init__(self, parent, controller):
@@ -201,7 +195,15 @@ class PotionPantryPage(tk.Frame): #INVENTORY
         self.nav_frame = NavigationBar(self, controller)
         self.nav_frame.pack(fill="x", pady = 5)
 
-        label2 = tk.Label(self, text="PotionPantryPage test").pack() #TESTING
+        label2 = ttk.Label(self, text = "PotionPantryPage test").pack() #TESTING
+
+        """
+        FEATURES NEEDED:
+        -table of inventory (includes ingredient/item, location, Quantity on Hand (QoH), status, rarity and magical properties as column headers; 
+        users cannot modify any of the table values on default)
+        -edit button (allows the user to modify values in the QoH column)
+        -save button (saves changes to the CSV file and updates the values)
+        """
 
 class RequestScrollsPage(tk.Frame): #ORDERS
     def __init__(self, parent, controller):
@@ -211,11 +213,32 @@ class RequestScrollsPage(tk.Frame): #ORDERS
         self.nav_frame = NavigationBar(self, controller)
         self.nav_frame.pack(fill = "x", pady = 5)
 
-        label3 = tk.Label(self, text="RequestScrollsPage test").pack() #TESTING
+        label3 = ttk.Label(self, text = "RequestScrollsPage test").pack() #TESTING
+
+        """
+        FEATURES NEEDED:
+        -status legend frame (consists of labels representing the status of orders: ongoing, requested, completed and cannot be completed;
+       on the left)
+        -orders table (consists of column headers: order#, client name, order request, status and action;
+        users cannot modify any of the table values, except action which will be display/update based on inventory quantites;
+
+        action cell states:
+            if the state of the order is ongoing, users can press the cell to complete the order (the cell will say "COMPLETE ORDER"); 
+            if the state of the order is completed, users cannot interact with the cell (the cell will say "NO ACTION REQUIRED");
+            if the state of the order is requested, it is a new order and the user can press the cell to complete the order (the cell will say "ACCEPT ORDER AND COMPLETE")
+            if the state of the order is cannot be completed, the user cannot interact with the cell (the cell will say "ORDER MORE [item that doesn't meet quantity] TO COMPLETE ORDER")
+
+        a pop up will prompt the user to save after they interact with a cell in the action column)
+        -update button (saves changes (if any) based on orders that the user chose to complete; will save )
+        """
 
 if __name__ == '__main__':
     root = tk.Tk()
+    configure_style(root)   
     app = CalcifersLedgerApp(root)
     root.mainloop()
+
+
+
 
 
