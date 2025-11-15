@@ -1,0 +1,94 @@
+APOTHECARY,PRICE,INVENTORY,POTIONS,EFFECT,RECIPE,CUSTOMER,APOTHECARY ORDER,BREWERY ORDER
+Calcifer's Fallen Ember,50,10,Potion of Hearth's Homecoming,"When consumed, the next door you open will lead directly to the place you truly consider ""home.""","Calcifer's Fallen Ember
+Moving Castle's Rust Flake
+Pendant's Crystallized Starlight",Madame Suliman's Academy,"Witch-of-the-Waste's Perfume Vapor
+Moving Castle's Rust Flake",Vapour of Shifting Facades
+Witch-of-the-Waste's Perfume Vapor,48,10,Elixir of the Unnoticed Journey,Renders the drinker completely inconspicuous and unremarkable for several hours,"Seven-League Boot Leather Scrap
+Royal Dog Whisker
+Steam-Pipe Condensate",The King's Royal Guard,"Royal Dog Whisker
+Tear of a Freed Scarecrow
+Royal Intrigue Berry","Tincture of Loyal Retrieval
+Concoction of the Courtier's Clarity"
+Moving Castle's Rust Flake,23,10,Draught of Revealed Hearts,Forces all who are under a glamour or emotional enchantment to reveal their true feelings and appearance,"Witch-of-the-Waste's Perfume Vapor
+Pendant's Crystallized Starlight",The Witch of the Waste,"Pendant's Crystallized Starlight
+Witch-of-the-Waste's Perfume Vapor",Draught of Revealed Hearts
+Tear of a Freed Scarecrow,20,10,Vapour of Shifting Facades,A smoke which causes a single inanimate object to cycle rapidly through a series of random appearances,"Moving Castle's Rust Flake
+Witch-of-the-Waste's Perfume Vapor
+Steam-Pipe Condensate",Market Chipping Baker,"Calcifer's Fallen Ember
+Steam-Pipe Condensate",Potion of Hearth's Homecoming
+Seven-League Boot Leather Scrap,25,10,Tincture of Loyal Retrieval,"When given to a creature, it will unerringly find a specific person or object","Royal Dog Whisker
+Tear of a Freed Scarecrow",Porthaven Fishermen's Guild,"Seven-League Boot Leather Scrap
+Royal Dog Whisker
+Steam-Pipe Condensate",Elixir of the Unnoticed Journey
+Royal Dog Whisker,35,10,Potion of the Star's Bargain,"temporary, magical contract between two beings, binding them to a single, mutually agreed-upon task","Calcifer's Fallen Ember
+Pendant's Crystallized Starlight",Royal Astrologer,"Pendant's Crystallized Starlight
+Calcifer's Fallen Ember",Potion of the Star's Bargain
+Pendant's Crystallized Starlight,10,10,Concoction of the Courtier's Clarity,"Allows the drinker to see the intricate web of loyalties, deceptions, and intentions of everyone in a room","Royal Intrigue Berry
+Royal Dog Whisker
+Tear of a Freed Scarecrow",Turnip-Head,"Tear of a Freed Scarecrow
+Moving Castle's Rust Flake",Potion of Hearth's Homecoming
+Royal Intrigue Berry,26,10,Elixir of Winged Whispers,Grants the drinker the ability to understand and speak the language of birds and minor spirits for one hour,"Mimic's Molted Feather
+Royal Dog Loyalty Tear",Kingsbury Dressmaker,"Mimic's Molted Feather
+Witch-of-the-Waste's Perfume Vapor
+Sulliman's Faded Sigil",Salve of the Stolen Face
+Steam-Pipe Condensate,29,10,Salve of the Stolen Face,Allows the user to perfectly mimic another person's voice and appearance for a short time,"Witch-of-the-Waste's Perfume Vapor
+Sulliman's Faded Sigil
+Mimic's Molted Feather",Royal Messenger Service,"Cursed Contract Ink
+Pendant's Crystallized Starlight
+",Ink of Binding Vows
+Mimic's Molted Feather,21,10,Tonic of Unraveling Threads,"When poured on a magical construct or cursed object, it temporarily suspends its animation or enchantment","Turnip-Head's Nail
+Steam-Pipe Condensate
+Moving Castle's Rust Flake","Calcifer
+","Calcifer's Fallen Ember
+Steam-Pipe Condensate
+Moving Castle's Rust Flake",
+Turnip-Head's Nail,18,10,Philter of the Wandering Castle,Causes a single building or vehicle to shift its location randomly every few minutes for one hour,"Door-Knob's Whisper
+Calcifer's Fallen Ember
+Seven-League Boot Leather Scrap",The Floating Market,"Royal Dog Loyalty Tear
+Mimic's Molted Feather",Elixir of Winged Whispers
+Royal Dog Loyalty Tear,49,10,Ink of Binding Vows,"Any contract written with this ink is magically binding; breaking it carries a severe, pre-defined consequence","Cursed Contract Ink
+Pendant's Crystallized Starlight",Sophie Hatter,"Door-Knob's Whisper
+Calcifer's Fallen Ember
+Seven-League Boot Leather Scrap",Philter of the Wandering Castle
+Door-Knob's Whisper,35,10,,,,Royal Gardeners,"Ingredients
+Turnip-Head's Nail
+Steam-Pipe Condensate
+Moving Castle's Rust Flake",Tonic of Unraveling Threads
+Sulliman's Faded Sigil,20,10,,,,Madame Suliman,"Ingredients
+Royal Intrigue Berry
+Royal Dog Whisker
+Tear of a Freed Scarecrow","Potions
+Concoction of the Courtier's Clarity"
+Cursed Contract Ink,5,10,,,,The Moving Castle,"Ingredients
+Moving Castle's Rust Flake
+Door-Knob's Whisper
+Steam-Pipe Condensate","Potions
+Vapour of Shifting Facades
+Philter of the Wandering Castle"
+,,,,,,Howl Jenkins Pendragon,"Ingredients
+Witch-of-the-Waste's Perfume Vapor
+Pendant's Crystallized Starlight
+Mimic's Molted Feather","Potions
+Draught of Revealed Hearts
+Salve of the Stolen Face"
+,,,,,,Market Chipping Children's Home,"Ingredients
+Calcifer's Fallen Ember
+Moving Castle's Rust Flake
+Pendant's Crystallized Starlight","Potions
+Potion of Hearth's Homecoming"
+,,,,,,Royal Library,"Ingredients
+Cursed Contract Ink
+Sulliman's Faded Sigil
+Potions
+Ink of Binding Vows","Potions
+Ink of Binding Vows"
+,,,,,,The Waste Nomads,"Ingredients
+Seven-League Boot Leather Scrap
+Royal Dog Whisker
+Tear of a Freed Scarecrow","Potions
+Elixir of the Unnoticed Journey
+Tincture of Loyal Retrieval"
+,,,,,,Kingsbury Clockmaker,"Ingredients
+Turnip-Head's Nail
+Steam-Pipe Condensate","Potions
+Tonic of Unraveling Threads"
