@@ -1,4 +1,4 @@
-APOTHECARY,PRICE,INVENTORY,POTIONS,EFFECT,RECIPE,CUSTOMER,APOTHECARY ORDER,BREWERY ORDER
+APOTHECARY,PRICE,INVENTORY,POTIONS,EFFECT,RECIPE,CUSTOMER,APOTHECARY ORDER,BREWERY ORDER, ACTIVITY STATUS
 Calcifer's Fallen Ember,50,10,Potion of Hearth's Homecoming,"When consumed, the next door you open will lead directly to the place you truly consider ""home.""","Calcifer's Fallen Ember
 Moving Castle's Rust Flake
 Pendant's Crystallized Starlight",Madame Suliman's Academy,"Witch-of-the-Waste's Perfume Vapor

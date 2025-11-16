@@ -4,6 +4,7 @@
 from cProfile import label
 import tkinter as tk
 from tkinter import ttk, messagebox
+import model
 
 #GLOBAL THEME (consistent widget rendering on macOS + Windows)
 def configure_style(root):
@@ -20,16 +21,19 @@ def configure_style(root):
     style.configure("NavButton.TButton", font = ("Verdana", 10), background = "white") #when unactive
     style.configure("BoldNav.TButton", font = ("Verdana", 10, "bold"), background = "white") #when active
 
-#the NAVIGATION 
+    style.map("Treeview.Heading",background=[],relief=[])
+    style.map("Vertical.TScrollbar", background=[], arrowcolor=[])
+
+#the NAVIGATION
 class NavigationBar(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg = "white", bd = .5, relief = "solid")
         self.controller = controller
         self.nav_buttons = {}
 
-        nav_items = [ #list of NAVIGATION items 
+        nav_items = [ #list of NAVIGATION items
             ("Overview", OverviewPage), #Overview / Welcome Chamber
-            ("Potion Pantry", PotionPantryPage), #Inventory / Potion Pantry 
+            ("Potion Pantry", PotionPantryPage), #Inventory / Potion Pantry
             ("Request Scrolls", RequestScrollsPage), #Orders / Request Scrolls
         ]
 
@@ -59,7 +63,7 @@ class NavigationBar(tk.Frame):
                 button.config(style = "BoldNav.TButton")
             else:
                 button.config(style = "NavButton.TButton")
-    
+
     def refresh_username(self):
         username = self.controller.username
         if username:
@@ -67,7 +71,7 @@ class NavigationBar(tk.Frame):
         else:
             self.welcome_label.config(text = "Welcome!")
 
-#
+# Main Application
 class CalcifersLedgerApp:
     def __init__(self, root):
         self.root = root
@@ -81,7 +85,8 @@ class CalcifersLedgerApp:
         }
 
         self.username = None #intializes the username of whom has logged into the application
-   
+        self.model = model.Model()
+
         container = tk.Frame(self.root, bg = "white")
         container.pack(fill = "both", expand = True)
 
@@ -107,6 +112,7 @@ class CalcifersLedgerApp:
             frame.nav_frame.refresh_username()
             frame.nav_frame.update_active(page_class) #updates active section of the navigation (BOLDS IT)
 
+# Windows in Application
 class LoginPage(tk.Frame):
      def __init__(self, parent, controller):
         super().__init__(parent, bg = "white")
@@ -167,7 +173,7 @@ class LoginPage(tk.Frame):
 
         if username in valid_logins and valid_logins[username] == password:
             messagebox.showinfo("Access Granted", f"Welcome, {username.capitalize()}!")
-           
+
             overview_page = self.controller.frames[OverviewPage]
             self.controller.username = username #Updates the NAVIGATION with the username of whom logged in
 
@@ -187,23 +193,56 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
 
         label1 = ttk.Label(self, text = "OverviewPage test").pack() #TESTING
 
-class PotionPantryPage(tk.Frame): #INVENTORY 
+class PotionPantryPage(tk.Frame):  # INVENTORY
     def __init__(self, parent, controller):
-        super().__init__(parent, bg = "white")
-
-        #initializes the NAVIGATION BAR in the potion pantry page
+        super().__init__(parent, bg="white")
+        self.controller = controller
         self.nav_frame = NavigationBar(self, controller)
-        self.nav_frame.pack(fill="x", pady = 5)
+        self.nav_frame.pack(fill="x", pady=5)
+        content_frame = tk.Frame(self, bg="white")
+        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.create_inventory_table(content_frame)
 
-        label2 = ttk.Label(self, text = "PotionPantryPage test").pack() #TESTING
+    def create_inventory_table(self, parent):
+        """Create the inventory table that corresponds to potion_pantry dict"""
+        style = ttk.Style()
+        style.configure("Treeview", font=("Verdana", 20), rowheight=40)
+        style.configure("Treeview.Heading", font=("Verdana", 13, "bold"))
+        self.tree = ttk.Treeview(parent,
+                                 columns=("Item", "Price", "QoH"),
+                                 show="headings", height=15)
+        columns = [
+            ("Item", 200),
+            ("Price", 80),
+            ("QoH", 80)
+        ]
+        for col, width in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=width)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        self.tree.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        self.load_inventory_data()
 
-        """
-        FEATURES NEEDED:
-        -table of inventory (includes ingredient/item, location, Quantity on Hand (QoH), status, rarity and magical properties as column headers; 
-        users cannot modify any of the table values on default)
-        -edit button (allows the user to modify values in the QoH column)
-        -save button (saves changes to the CSV file and updates the values)
-        """
+    def load_inventory_data(self):
+        """Load data from model's potion_pantry dict into the table"""
+        self.tree.delete(*self.tree.get_children())
+        if hasattr(self.controller, 'model'):
+            pantry_data = self.controller.model.dicts["potion_pantry"]
+            for item, price_data in pantry_data.items():
+                for price, qoh_data in price_data.items():
+                    for qoh, rows in qoh_data.items():
+                        for row in rows:
+                            self.tree.insert("", "end", values=(
+                                item,
+                                price,
+                                qoh,
+                            ))
+        else:
+            self.tree.insert("", "end", values=(
+                "Model not initialized", "", ""
+            ))
 
 class RequestScrollsPage(tk.Frame): #ORDERS
     def __init__(self, parent, controller):
@@ -234,7 +273,7 @@ class RequestScrollsPage(tk.Frame): #ORDERS
 
 if __name__ == '__main__':
     root = tk.Tk()
-    configure_style(root)   
+    configure_style(root)
     app = CalcifersLedgerApp(root)
     root.mainloop()
 
