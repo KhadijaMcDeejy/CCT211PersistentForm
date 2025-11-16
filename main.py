@@ -95,13 +95,13 @@ class CalcifersLedgerApp:
 
         self.frames = {}
 
-        #INITIALIZES all of our pages
+        # TODO INITIALIZES all of our pages
         for Page in (LoginPage, OverviewPage, PotionPantryPage, RequestScrollsPage):
             frame = Page(parent = container, controller = self)
             self.frames[Page] = frame
             frame.grid(row = 0, column = 0, sticky = "nsew")
 
-        self.show_frame(LoginPage) #SHOWS THE LOGIN PAGE FRAME
+        self.show_frame(PotionPantryPage) #SHOWS THE LOGIN PAGE FRAME
 
     def show_frame(self, page_class):
         frame = self.frames[page_class]
@@ -195,26 +195,38 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
 
 class PotionPantryPage(tk.Frame):  # INVENTORY
     def __init__(self, parent, controller):
-        super().__init__(parent, bg="white")
+        super().__init__(parent, bg="blanched almond")
         self.controller = controller
         self.nav_frame = NavigationBar(self, controller)
-        self.nav_frame.pack(fill="x", pady=5)
-        content_frame = tk.Frame(self, bg="white")
+        self.nav_frame.pack(fill="x", pady=0)
+        content_frame = tk.Frame(self, bg="black")
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
         self.create_inventory_table(content_frame)
 
     def create_inventory_table(self, parent):
         """Create the inventory table that corresponds to potion_pantry dict"""
         style = ttk.Style()
-        style.configure("Treeview", font=("Verdana", 20), rowheight=40)
-        style.configure("Treeview.Heading", font=("Verdana", 13, "bold"))
+        style.configure("Treeview",
+                        font=("Verdana", 20),
+                        rowheight=40,
+                        background="lemon chiffon",
+                        fieldbackground="lemon chiffon")
+
+        style.configure("Treeview.Heading",
+                        font=("Verdana", 13, "bold"),
+                        background="MistyRose2")
+
+        style.configure("Vertical.TScrollbar",
+                        background="MistyRose2",
+                        fieldbackground="white")
+
         self.tree = ttk.Treeview(parent,
                                  columns=("Item", "Price", "QoH"),
                                  show="headings", height=15)
         columns = [
-            ("Item", 200),
-            ("Price", 80),
-            ("QoH", 80)
+            ("Item", 600),
+            ("Price", 20),
+            ("QoH", 20)
         ]
         for col, width in columns:
             self.tree.heading(col, text=col)
