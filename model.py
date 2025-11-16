@@ -31,6 +31,77 @@ class Model(tk.Frame):
                 pass
         raise RuntimeError("Cannot read CSV with common encodings. Check file path/encoding.")
 
+    def save_rows(self):
+        """
+        Save rows back to CSV file.
+        """
+        try:
+            with open(self.CSV_PATH, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=self.COLUMNS)
+                writer.writeheader()
+                writer.writerows(self.rows)
+            return True
+        except Exception as e:
+            print(f"Error saving CSV: {e}")
+            return False
+
+    def add_potion_pantry_row(self, item, price, qoh):
+        """
+        Add a new row to potion pantry data.
+        """
+        new_row = {
+            "APOTHECARY": item,
+            "PRICE": price,
+            "INVENTORY": qoh,
+            "POTIONS": "",
+            "EFFECT": "",
+            "RECIPE": "",
+            "CUSTOMER": "",
+            "APOTHECARY ORDER": "",
+            "BREWERY ORDER": "",
+            "ACTIVITY STATUS": ""
+        }
+        self.rows.append(new_row)
+        success = self.save_rows()
+        if success:
+            self.dicts = self.group()  # Regroup data
+        return success
+
+    def update_potion_pantry_row(self, old_item, old_price, old_qoh, new_item, new_price, new_qoh):
+        """
+        Update an existing potion pantry row.
+        """
+        # Find and update the row
+        for row in self.rows:
+            if (row.get("APOTHECARY", "").strip() == old_item and
+                    row.get("PRICE", "").strip() == old_price and
+                    row.get("INVENTORY", "").strip() == old_qoh):
+                row["APOTHECARY"] = new_item
+                row["PRICE"] = new_price
+                row["INVENTORY"] = new_qoh
+                break
+
+        success = self.save_rows()
+        if success:
+            self.dicts = self.group()  # Regroup data
+        return success
+
+    def delete_potion_pantry_row(self, item, price, qoh):
+        """
+        Delete a potion pantry row.
+        """
+        # Find and remove the row
+        self.rows = [row for row in self.rows if not (
+                row.get("APOTHECARY", "").strip() == item and
+                row.get("PRICE", "").strip() == price and
+                row.get("INVENTORY", "").strip() == qoh
+        )]
+
+        success = self.save_rows()
+        if success:
+            self.dicts = self.group()  # Regroup data
+        return success
+
     def group(self):
         """
         potion_pantry_dict[item][item_price][item_qoh] -> list of rows
@@ -232,27 +303,7 @@ class Model(tk.Frame):
         """Filter rows by customer name"""
         return [r for r in self.rows if r.get("CUSTOMER", "").strip() == customer_name]
 
-    def refresh_data(self):
+    def update(self):
         """Reload data from CSV and regroup"""
-        pass
-
-    def get_record(self, rid):
-        """return a single record identified by the record id"""
-        pass
-
-    def get_all_records(self):
-        """ return all records stored in the database
-        """
-        pass
-
-    def save_record(self, record):
-        pass
-
-    def get_all_sorted_records(self):
-        pass
-
-    def delete_record(self, rid):
-        pass
-
-    def cleanup(self):
-        pass
+        self.rows = self.load_rows()
+        self.dicts = self.group()
