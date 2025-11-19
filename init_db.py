@@ -4,10 +4,11 @@ import os
 
 
 def initialize_database():
+    """Initialize the database - only run this manually when you want to reset"""
     conn = sqlite3.connect('apothecary_inventory.db')
     cur = conn.cursor()
 
-    # Create tables
+    # Create tables only if they don't exist
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS Apothecary
                 (
@@ -170,13 +171,25 @@ def initialize_database():
                     )
                 ''')
 
-    # Read data from CSV file
+    # Check if database is empty and populate with CSV data
+    cur.execute("SELECT COUNT(*) FROM Apothecary")
+    if cur.fetchone()[0] == 0:
+        print("Populating database with CSV data...")
+        populate_from_csv(cur)
+    else:
+        print("Database already populated. Skipping data insertion.")
+
+    conn.commit()
+    conn.close()
+    print("Database initialization complete!")
+
+
+def populate_from_csv(cur):
+    """Populate database with data from CSV file"""
     csv_filename = 'InventoryManagement2.csv'
 
     if not os.path.exists(csv_filename):
         print(f"Error: CSV file '{csv_filename}' not found!")
-        print("Please make sure InventoryManagement2.csv is in the same directory as this script.")
-        conn.close()
         return
 
     # Extract unique ingredients and potions from CSV
@@ -215,65 +228,49 @@ def initialize_database():
                     customer_name = row[6].strip()
                     customers.add(customer_name)
 
+        # Insert ingredients
+        ingredient_id_map = {}
+        for name, price, qoh in ingredients:
+            cur.execute(
+                "INSERT INTO Apothecary (ingredient_name, ingredient_price, ingredient_qoh) VALUES (?, ?, ?)",
+                (name, price, qoh)
+            )
+            ingredient_id = cur.lastrowid
+            ingredient_id_map[name] = ingredient_id
+
+        # Insert potions
+        potion_id_map = {}
+        for name, effect in potions:
+            cur.execute(
+                "INSERT INTO Potions (potion_name, effect_description) VALUES (?, ?)",
+                (name, effect)
+            )
+            potion_id = cur.lastrowid
+            potion_id_map[name] = potion_id
+
+        # Insert potion recipes
+        for potion_name, recipe_ingredients in potion_recipes.items():
+            potion_id = potion_id_map.get(potion_name)
+            if potion_id:
+                for ing_name in recipe_ingredients:
+                    ingredient_id = ingredient_id_map.get(ing_name)
+                    if ingredient_id:
+                        cur.execute(
+                            "INSERT INTO Potion_Ingredients (potion_id, ingredient_id, quantity) VALUES (?, ?, ?)",
+                            (potion_id, ingredient_id, 1)
+                        )
+
+        # Insert customers as orders
+        for customer_name in customers:
+            cur.execute(
+                "INSERT INTO Orders (customer_name) VALUES (?)",
+                (customer_name,)
+            )
+
+        print(f"Added {len(ingredients)} ingredients, {len(potions)} potions, and {len(customers)} customers")
+
     except Exception as e:
         print(f"Error reading CSV file: {e}")
-        conn.close()
-        return
-
-    # Clear existing data and insert new data
-    cur.execute("DELETE FROM Potion_Ingredients")
-    cur.execute("DELETE FROM Order_Ingredients")
-    cur.execute("DELETE FROM Order_Potions")
-    cur.execute("DELETE FROM Apothecary")
-    cur.execute("DELETE FROM Potions")
-    cur.execute("DELETE FROM Orders")
-
-    # Insert ingredients
-    ingredient_id_map = {}
-    for name, price, qoh in ingredients:
-        cur.execute(
-            "INSERT INTO Apothecary (ingredient_name, ingredient_price, ingredient_qoh) VALUES (?, ?, ?)",
-            (name, price, qoh)
-        )
-        ingredient_id = cur.lastrowid
-        ingredient_id_map[name] = ingredient_id
-
-    # Insert potions
-    potion_id_map = {}
-    for name, effect in potions:
-        cur.execute(
-            "INSERT INTO Potions (potion_name, effect_description) VALUES (?, ?)",
-            (name, effect)
-        )
-        potion_id = cur.lastrowid
-        potion_id_map[name] = potion_id
-
-    # Insert potion recipes
-    for potion_name, recipe_ingredients in potion_recipes.items():
-        potion_id = potion_id_map.get(potion_name)
-        if potion_id:
-            for ing_name in recipe_ingredients:
-                ingredient_id = ingredient_id_map.get(ing_name)
-                if ingredient_id:
-                    cur.execute(
-                        "INSERT INTO Potion_Ingredients (potion_id, ingredient_id, quantity) VALUES (?, ?, ?)",
-                        (potion_id, ingredient_id, 1)  # Default quantity of 1
-                    )
-
-    # Insert customers as orders
-    for customer_name in customers:
-        cur.execute(
-            "INSERT INTO Orders (customer_name) VALUES (?)",
-            (customer_name,)
-        )
-
-    conn.commit()
-    conn.close()
-
-    print("Database initialized successfully with CSV data!")
-    print(f"Added {len(ingredients)} ingredients and {len(potions)} potions")
-    print(f"Added {len(customers)} customers")
-    print(f"Added {len(potion_recipes)} potion recipes")
 
 
 if __name__ == '__main__':

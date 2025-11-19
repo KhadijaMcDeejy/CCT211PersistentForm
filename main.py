@@ -95,8 +95,6 @@ class CalcifersLedgerApp:
         container.grid_rowconfigure(0, weight = 1)
         container.grid_columnconfigure(0, weight = 1)
 
-        initialize_database()
-
         self.frames = {}
 
         # INITIALIZES all of our pages
@@ -224,7 +222,7 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
             self.edit_row()
         elif event.keysym.lower() == 'a':
             self.add_row()
-        elif event.keysym == 'Delete':
+        elif event.keysym == 'd':
             self.delete_row()
 
     def create_inventory_table(self, parent):
@@ -454,7 +452,6 @@ class RequestScrollsPage(tk.Frame): #ORDERS
         """
 
 if __name__ == '__main__':
-    initialize_database()
     root = tk.Tk()
     configure_style(root)
     app = CalcifersLedgerApp(root)
