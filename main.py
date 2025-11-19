@@ -4,7 +4,9 @@
 from cProfile import label
 import tkinter as tk
 from tkinter import ttk, messagebox
-import model
+import models
+from models import Ingredient, Potion, SQLStorage
+from init_db import initialize_database
 
 #GLOBAL THEME (consistent widget rendering on macOS + Windows)
 def configure_style(root):
@@ -33,7 +35,7 @@ class NavigationBar(tk.Frame):
 
         nav_items = [ #list of NAVIGATION items
             ("Overview", OverviewPage), #Overview / Welcome Chamber
-            ("Potion Pantry", PotionPantryPage), #Inventory / Potion Pantry
+            ("Apothecary", PotionPantryPage), #Inventory / Potion Pantry
             ("Request Scrolls", RequestScrollsPage), #Orders / Request Scrolls
         ]
 
@@ -85,13 +87,15 @@ class CalcifersLedgerApp:
         }
 
         self.username = None #intializes the username of whom has logged into the application
-        self.model = model.Model()
+        self.model = models.SQLStorage()
 
         container = tk.Frame(self.root, bg = "white")
         container.pack(fill = "both", expand = True)
 
         container.grid_rowconfigure(0, weight = 1)
         container.grid_columnconfigure(0, weight = 1)
+
+        initialize_database()
 
         self.frames = {}
 
@@ -101,7 +105,7 @@ class CalcifersLedgerApp:
             self.frames[Page] = frame
             frame.grid(row = 0, column = 0, sticky = "nsew")
 
-        self.show_frame(PotionPantryPage) #SHOWS THE LOGIN PAGE FRAME
+        self.show_frame(LoginPage) #SHOWS THE LOGIN PAGE FRAME
 
     def show_frame(self, page_class):
         frame = self.frames[page_class]
@@ -193,6 +197,7 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
 
         label1 = ttk.Label(self, text = "OverviewPage test").pack() #TESTING
 
+
 class PotionPantryPage(tk.Frame):  # INVENTORY
     def __init__(self, parent, controller):
         super().__init__(parent, bg="blanched almond")
@@ -200,8 +205,11 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
         self.nav_frame = NavigationBar(self, controller)
         self.nav_frame.pack(fill="x", pady=0)
 
+        # Create a storage instance for this page
+        self.storage = SQLStorage()
+
         info_button = ttk.Button(self, text="[Info]", command=self.show_info)
-        info_button.pack(side="bottom", anchor="nw", padx=20, pady=(5,10))
+        info_button.pack(side="bottom", anchor="nw", padx=20, pady=(5, 10))
 
         content_frame = tk.Frame(self, bg="black")
         content_frame.pack(fill="both", expand=True, padx=20, pady=(10, 5))
@@ -220,11 +228,11 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
             self.delete_row()
 
     def create_inventory_table(self, parent):
-        """Create the inventory table that corresponds to potion_pantry dict"""
+        """Create the inventory table that corresponds to Apothecary table"""
         style = ttk.Style()
         style.configure("Treeview",
-                        font=("Verdana", 20),
-                        rowheight=40,
+                        font=("Verdana", 12),
+                        rowheight=30,
                         background="lemon chiffon",
                         fieldbackground="lemon chiffon")
 
@@ -232,23 +240,20 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
                         font=("Verdana", 13, "bold"),
                         background="MistyRose2")
 
-        style.configure("Vertical.TScrollbar",
-                        background="MistyRose2",
-                        fieldbackground="white")
-
+        # Updated to match database structure
         self.tree = ttk.Treeview(parent,
-                                 columns=("Item", "Price", "QoH"),
+                                 columns=("ID", "Item", "Price", "QoH"),
                                  show="headings", height=15)
         columns = [
-            ("Item", 600),
-            ("Price", 200),
-            ("QoH", 200)
+            ("ID", 100),
+            ("Item", 400),
+            ("Price", 150),
+            ("QoH", 150)
         ]
         for col, width in columns:
             self.tree.heading(col, text=col)
             self.tree.column(col, width=width)
 
-        # Set focus to treeview so it can receive keyboard events
         self.tree.focus_set()
 
         scrollbar = ttk.Scrollbar(parent, orient="vertical", command=self.tree.yview)
@@ -262,6 +267,7 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
         messagebox.showinfo("Keyboard Shortcuts",
                             "E - Edit selected row\n"
                             "A - Add new row\n"
+                            "Delete - Delete selected row\n"
                             "Click on a row to select it first.")
 
     def edit_row(self):
@@ -273,13 +279,13 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
 
         item = selected[0]
         current_values = self.tree.item(item, 'values')
+        ingredient_id = current_values[0]
 
-        # Create edit dialog
-        self.create_edit_dialog("Edit Row", current_values, item)
+        self.create_edit_dialog("Edit Ingredient", current_values, ingredient_id)
 
     def add_row(self):
         """Add a new row"""
-        self.create_edit_dialog("Add New Row", ("", "", ""), None)
+        self.create_edit_dialog("Add New Ingredient", ("", "", "", ""), None)
 
     def delete_row(self):
         """Delete the selected row"""
@@ -290,71 +296,60 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
 
         item = selected[0]
         values = self.tree.item(item, 'values')
+        ingredient_id = values[0]
 
         confirm = messagebox.askyesno(
             "Confirm Delete",
             f"Are you sure you want to delete:\n"
-            f"Item: {values[0]}\n"
-            f"Price: {values[1]}\n"
-            f"QoH: {values[2]}"
+            f"Item: {values[1]}\n"
+            f"Price: {values[2]}\n"
+            f"QoH: {values[3]}"
         )
 
         if confirm:
-            # Delete from model
-            success = self.controller.model.delete_potion_pantry_row(
-                values[0], values[1], values[2]
+            try:
+                self.storage.delete_ingredient(int(ingredient_id))
+                messagebox.showinfo("Success", "Ingredient deleted successfully!")
+                self.load_inventory_data()
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to delete: {str(e)}")
+
+    def save_changes(self, dialog, name_entry, price_entry, qoh_entry, ingredient_id, current_values):
+        """Save changes to the database"""
+        try:
+            new_name = name_entry.get().strip()
+            new_price = int(price_entry.get().strip())
+            new_qoh = int(qoh_entry.get().strip())
+
+            if not new_name:
+                messagebox.showerror("Error", "Item name cannot be empty.")
+                return
+
+            ingredient = Ingredient(
+                name=new_name,
+                price=new_price,
+                quantity=new_qoh,
+                ingredient_id=int(ingredient_id) if ingredient_id else 0
             )
-            if success:
-                messagebox.showinfo("Success", "Row deleted successfully!")
-                self.load_inventory_data()  # Refresh table
-            else:
-                messagebox.showerror("Error", "Failed to delete row from file.")
 
-    def save_changes(self, dialog, item_entry, price_entry, qoh_entry, item, current_values):
-        """Save changes to the model and refresh the table"""
-        new_values = (
-            item_entry.get().strip(),
-            price_entry.get().strip(),
-            qoh_entry.get().strip()
-        )
-
-        if not new_values[0]:
-            messagebox.showerror("Error", "Item name cannot be empty.")
-            return
-
-        success = False
-        if item is None:  # Adding new row
-            # Add to model
-            success = self.controller.model.add_potion_pantry_row(
-                new_values[0], new_values[1], new_values[2]
-            )
-            if success:
-                messagebox.showinfo("Success", "New row added successfully!")
-            else:
-                messagebox.showerror("Error", "Failed to add new row to file.")
-        else:  # Editing existing row
-            # Update in model
-            success = self.controller.model.update_potion_pantry_row(
-                current_values[0], current_values[1], current_values[2],  # old values
-                new_values[0], new_values[1], new_values[2]  # new values
-            )
-            if success:
-                messagebox.showinfo("Success", "Row updated successfully!")
-            else:
-                messagebox.showerror("Error", "Failed to update row in file.")
-
-        if success:
-            self.load_inventory_data()  # Refresh table to show updated data
+            self.storage.save_ingredient(ingredient)
+            messagebox.showinfo("Success", "Ingredient saved successfully!")
+            self.load_inventory_data()
             dialog.destroy()
 
-    def create_edit_dialog(self, title, current_values, item):
-        """Create dialog for editing/adding rows"""
+        except ValueError:
+            messagebox.showerror("Error", "Price and Quantity must be numbers.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save: {str(e)}")
+
+    def create_edit_dialog(self, title, current_values, ingredient_id):
+        """Create dialog for editing/adding ingredients"""
         dialog = tk.Toplevel(self)
         dialog.title(title)
         dialog.geometry("400x300")
         dialog.configure(bg="blanched almond")
-        dialog.transient(self)  # Set to be on top of the main window
-        dialog.grab_set()  # Modal dialog
+        dialog.transient(self)
+        dialog.grab_set()
 
         # Center the dialog
         dialog.update_idletasks()
@@ -366,31 +361,31 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
         form_frame = tk.Frame(dialog, bg="blanched almond", padx=20, pady=20)
         form_frame.pack(fill="both", expand=True)
 
-        # Item field
+        # Name field
         ttk.Label(form_frame, text="Item:", background="blanched almond").grid(row=0, column=0, sticky="w", pady=5)
-        item_entry = ttk.Entry(form_frame, width=30, font=("Verdana", 12))
-        item_entry.grid(row=0, column=1, sticky="ew", pady=5, padx=(10, 0))
-        item_entry.insert(0, current_values[0])
-        item_entry.focus_set()  # Focus on first field
+        name_entry = ttk.Entry(form_frame, width=30, font=("Verdana", 12))
+        name_entry.grid(row=0, column=1, sticky="ew", pady=5, padx=(10, 0))
+        name_entry.insert(0, current_values[1] if ingredient_id else "")
+        name_entry.focus_set()
 
         # Price field
         ttk.Label(form_frame, text="Price:", background="blanched almond").grid(row=1, column=0, sticky="w", pady=5)
         price_entry = ttk.Entry(form_frame, width=30, font=("Verdana", 12))
         price_entry.grid(row=1, column=1, sticky="ew", pady=5, padx=(10, 0))
-        price_entry.insert(0, current_values[1])
+        price_entry.insert(0, current_values[2] if ingredient_id else "")
 
         # QoH field
         ttk.Label(form_frame, text="QoH:", background="blanched almond").grid(row=2, column=0, sticky="w", pady=5)
         qoh_entry = ttk.Entry(form_frame, width=30, font=("Verdana", 12))
         qoh_entry.grid(row=2, column=1, sticky="ew", pady=5, padx=(10, 0))
-        qoh_entry.insert(0, current_values[2])
+        qoh_entry.insert(0, current_values[3] if ingredient_id else "")
 
         # Button frame
         button_frame = tk.Frame(form_frame, bg="blanched almond")
         button_frame.grid(row=3, column=0, columnspan=2, pady=20)
 
         def save_and_close():
-            self.save_changes(dialog, item_entry, price_entry, qoh_entry, item, current_values)
+            self.save_changes(dialog, name_entry, price_entry, qoh_entry, ingredient_id, current_values)
 
         def cancel():
             dialog.destroy()
@@ -400,42 +395,37 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
 
         # Bind Enter key to save
         dialog.bind('<Return>', lambda e: save_and_close())
-        # Bind Escape key to cancel
         dialog.bind('<Escape>', lambda e: cancel())
 
-        # Make form responsive
         form_frame.columnconfigure(1, weight=1)
 
     def load_inventory_data(self):
-        """Load data from model's potion_pantry dict into the table"""
+        """Load data from SQL database into the table"""
         self.tree.delete(*self.tree.get_children())
-        if hasattr(self.controller, 'model'):
-            try:
-                # Refresh the model data first
-                self.controller.model.update()
-                pantry_data = self.controller.model.dicts["potion_pantry"]
+        try:
+            ingredients = self.storage.get_all_ingredients()
 
-                if not pantry_data:
-                    self.tree.insert("", "end", values=("No data found", "", ""))
-                    return
+            if not ingredients:
+                self.tree.insert("", "end", values=("No ingredients found", "", "", ""))
+                return
 
-                for item, price_data in pantry_data.items():
-                    for price, qoh_data in price_data.items():
-                        for qoh, rows in qoh_data.items():
-                            for row in rows:
-                                self.tree.insert("", "end", values=(
-                                    item,
-                                    price,
-                                    qoh,
-                                ))
-            except Exception as e:
+            for ingredient in ingredients:
                 self.tree.insert("", "end", values=(
-                    f"Error loading data: {str(e)}", "", ""
+                    ingredient.ingredient_id,
+                    ingredient.name,
+                    f"${ingredient.price}",
+                    ingredient.quantity
                 ))
-        else:
+        except Exception as e:
             self.tree.insert("", "end", values=(
-                "Model not initialized", "", ""
+                f"Error loading data: {str(e)}", "", "", ""
             ))
+
+    def __del__(self):
+        """Clean up storage when page is destroyed"""
+        if hasattr(self, 'storage'):
+            self.storage.cleanup()
+
 class RequestScrollsPage(tk.Frame): #ORDERS
     def __init__(self, parent, controller):
         super().__init__(parent, bg = "white")
@@ -464,6 +454,7 @@ class RequestScrollsPage(tk.Frame): #ORDERS
         """
 
 if __name__ == '__main__':
+    initialize_database()
     root = tk.Tk()
     configure_style(root)
     app = CalcifersLedgerApp(root)

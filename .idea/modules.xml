@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../CCT211 Pycharm/.idea/CCT211 Pycharm.iml" filepath="$PROJECT_DIR$/../CCT211 Pycharm/.idea/CCT211 Pycharm.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/CCT211PersistentForm.iml" filepath="$PROJECT_DIR$/.idea/CCT211PersistentForm.iml" />
     </modules>
   </component>
