@@ -7,6 +7,11 @@ from tkinter import ttk, messagebox
 import models
 from models import Ingredient, Potion, SQLStorage
 from init_db import initialize_database
+from init_db import SQLStorage
+import sqlite3
+import matplotlib
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 #GLOBAL THEME (consistent widget rendering on macOS + Windows)
 def configure_style(root):
@@ -78,7 +83,7 @@ class CalcifersLedgerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Calcifer’s Ledger - Magic Record Keeping System")
-        self.root.geometry("1200x600")
+        self.root.geometry("1350x600")
 
         self.valid_logins = {
             "howl": "fire123",
@@ -193,7 +198,140 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
         self.nav_frame = NavigationBar(self, controller)
         self.nav_frame.pack(fill = "x", pady = 5)
 
-        label1 = ttk.Label(self, text = "OverviewPage test").pack() #TESTING
+        #Overview: TITLE Frame 
+        title_frame = tk.Frame(self, bg = "white")
+        title_frame.pack(fill = "x", pady = (10, 20))
+        ttk.Label(
+            title_frame,
+            text = "Overview",
+            font = ("Palatino", 42, "bold"),
+            background = "white",
+        ).pack(anchor="w", padx = 30)
+
+        #Overview: Content Area
+        content_frame = tk.Frame(self, bg = "white")
+        content_frame.pack(fill = "both", expand = True, padx = 30, pady = 10)
+        content_frame.grid_columnconfigure(0, weight = 1)  #chart column: for the chart of past popular orders!
+        content_frame.grid_columnconfigure(1, weight = 1)  #text column: giving context of the chart!
+        content_frame.grid_rowconfigure(0, weight = 1)
+
+        #Overview: Content Area- Left Side (CHART of past popular orders)
+        chart_container = tk.Frame(content_frame, bg = "white", bd = 2, relief = "solid")
+        chart_container.grid(row = 0, column = 0, sticky = "nsew", padx = (0, 20))
+        self.create_popular_orders_chart(chart_container) #generates the Matplotlib chart
+        ttk.Label( #chart title for user context
+            chart_container,
+            text = "Past Popular Orders",
+            font = ("Verdana", 11, "italic"),
+            background = "white"
+        ).pack(side = "bottom", pady = 8)
+
+        #fetching popular orders for the right side content area (specifically for the body_text section):
+        storage = SQLStorage()
+        order_data = storage.fetch_total_orders_by_item_type()
+        if order_data:
+            order_list = [(row["item_name"], int(row["total_ordered"])) for row in order_data] #converts the sqlite3 row into dict for access
+
+            order_list.sort(key=lambda x: x[1], reverse=True) #Sorts the highest to the lowest most popular past orders
+
+            #Extracts the top 3 most popular orders and bottom least popular order
+            top_3 = order_list[:3] #top 3 popular order stored in top_3
+            least = order_list[-1] if len(order_list) > 0 else ("None", 0) #least popular order stored in least
+        else:
+            top_3 = [("No data", 0), ("No data", 0), ("No data", 0)]
+            least = ("No data", 0)
+
+        storage.close()
+
+        #Overview: Content Area- Right Side (Text regarding past popular orders)
+        text_container = tk.Frame(content_frame, bg = "white", bd = 2, relief = "solid")
+        text_container.grid(row = 0, column = 1, sticky="nsew")
+        ttk.Label( #Subheader
+            text_container,
+            text = "Apothecary Insights",
+            font = ("Verdana", 18, "bold"),
+            background = "white",
+        ).pack(anchor = "nw", padx = 20, pady = (20, 10))
+        body_text = ( #Variable for body text (body_text)
+            "Welcome to Calcifer's Ledger, your enchanted inventory and order management system. "
+            "This magical ledger organizes the apothecary’s stock and tracks incoming orders, "
+            "ensuring the castle’s operations run smoothly and efficiently.\n\n"
+            "The chart on the left displays trends in past orders, highlighting the most requested items. "
+            "By visualizing these patterns, castle staff can anticipate demand, optimize inventory, "
+            "and maintain appropriate stock levels for upcoming requests.\n\n"
+            "Current most popular orders:\n"
+            f"1. {top_3[0][0]}\n"
+            f"2. {top_3[1][0]}\n"
+            f"3. {top_3[2][0]}\n\n"
+            "Least popular order:\n"
+            f"- {least[0]}"
+        )
+        ttk.Label( #body text area
+            text_container,
+            text=body_text,
+            font=("Verdana", 11),
+            wraplength = 400,
+            background = "white",
+            justify = "left"
+        ).pack(anchor = "nw", padx = 20, pady = (0, 20))
+
+    #Overview: chart functions
+    def create_popular_orders_chart(self, container):
+            matplotlib.use("Agg")  
+            storage = SQLStorage() #calls the SQLStorage class in the init_db.py file 
+
+            try:
+                order_data = storage.fetch_total_orders_by_item_type() #calls fetch_total_orders_by_item_type and retrieves the values of item_name and total_ordered from the database 
+                #print([dict(row) for row in order_data]) #test print statement to show values of previous orders
+
+                if order_data:
+                    items = [row['item_name'] for row in order_data]
+                    counts = [int(row['total_ordered'] or 0) for row in order_data] 
+                else:
+                    items = ["No data"]
+                    counts = [0]
+            except Exception as e: #Error exception statement
+                print("Chart DB Error:", e)
+                items = ["No data"]
+                counts = [0]
+
+            #plots the bar chart!
+            fig = Figure(figsize=(8, 4), dpi = 100) #size of chart
+            ax = fig.add_subplot(111)
+            #draws each bar
+            bars = ax.bar(items, counts, color = 'skyblue') #initializes each bar values and colour
+            
+            #Chart titles
+            ax.set_title("Popular Past Orders")
+            ax.set_xlabel("Item Name")
+            ax.set_ylabel("Total Orders")
+            #Chart subtitles: Item Names 
+            ax.set_xticks(range(len(items)))  #sets the tick positions 
+            ax.set_xticklabels(items, rotation = 45, ha="right", fontsize = 6)
+
+            fig.subplots_adjust(bottom=0.3) #gives space for the tick labels on the x axis
+
+            #Quantity labels for each bar (displays an exact value for the user)
+            for bar, count in zip(bars, counts):
+                height = bar.get_height()
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,  #centers the text horizontally ontop of the bar
+                    height / 2, #places the text (quantity) in the middle of the bar for visual clarity
+                    str(count), #count is the value of quantity
+                    ha="center",
+                    va="bottom",
+                    fontsize=7,
+                    color="white"
+                )
+
+            #embeds the chart in Tkinter window 
+            canvas = FigureCanvasTkAgg(fig, master = container)
+            canvas.draw() #draws the canvas
+            canvas.get_tk_widget().pack(fill = "both", expand = True, padx = 10, pady = 10) #packs the canvas widget onto the window
+
+            storage.close()        
+
+        #label1 = ttk.Label(self, text = "OverviewPage test").pack() #TESTING
 
 
 class PotionPantryPage(tk.Frame):  # INVENTORY
@@ -202,9 +340,6 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
         self.controller = controller
         self.nav_frame = NavigationBar(self, controller)
         self.nav_frame.pack(fill="x", pady=0)
-
-        # Create a storage instance for this page
-        self.storage = SQLStorage()
 
         info_button = ttk.Button(self, text="[Info]", command=self.show_info)
         info_button.pack(side="bottom", anchor="nw", padx=20, pady=(5, 10))
@@ -298,15 +433,16 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
 
         confirm = messagebox.askyesno(
             "Confirm Delete",
-            f"Are you sure you want to delete:\n"
-            f"Item: {values[1]}\n"
-            f"Price: {values[2]}\n"
-            f"QoH: {values[3]}"
+            f"Are you sure you want to delete:\nItem: {values[1]}"
         )
 
         if confirm:
             try:
-                self.storage.delete_ingredient(int(ingredient_id))
+                conn = sqlite3.connect("apothecary_inventory.db")
+                cur = conn.cursor()
+                cur.execute("DELETE FROM Apothecary WHERE ingredient_id = ?", (ingredient_id,))
+                conn.commit()
+                conn.close()
                 messagebox.showinfo("Success", "Ingredient deleted successfully!")
                 self.load_inventory_data()
             except Exception as e:
@@ -323,12 +459,23 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
                 messagebox.showerror("Error", "Item name cannot be empty.")
                 return
 
-            ingredient = Ingredient(
-                name=new_name,
-                price=new_price,
-                quantity=new_qoh,
-                ingredient_id=int(ingredient_id) if ingredient_id else 0
-            )
+            conn = sqlite3.connect("apothecary_inventory.db")
+            cur = conn.cursor()
+
+            if ingredient_id:  #if ingredient_id is an Existing ingredient: Updates the values
+                cur.execute("""
+                    UPDATE Apothecary
+                    SET ingredient_name = ?, ingredient_price = ?, ingredient_qoh = ?
+                    WHERE ingredient_id = ?
+                """, (new_name, new_price, new_qoh, ingredient_id))
+            else:  #If its a New ingredient: inserts it
+                cur.execute("""
+                    INSERT INTO Apothecary (ingredient_name, ingredient_price, ingredient_qoh)
+                    VALUES (?, ?, ?)
+                """, (new_name, new_price, new_qoh))
+
+            conn.commit()
+            conn.close()
 
             self.storage.save_ingredient(ingredient)
             messagebox.showinfo("Success", "Ingredient saved successfully!")
@@ -401,7 +548,12 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
         """Load data from SQL database into the table"""
         self.tree.delete(*self.tree.get_children())
         try:
-            ingredients = self.storage.get_all_ingredients()
+            conn = sqlite3.connect("apothecary_inventory.db")
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT ingredient_id, ingredient_name, ingredient_price, ingredient_qoh FROM Apothecary")
+            ingredients = cur.fetchall()
+            conn.close()
 
             if not ingredients:
                 self.tree.insert("", "end", values=("No ingredients found", "", "", ""))
@@ -409,20 +561,21 @@ class PotionPantryPage(tk.Frame):  # INVENTORY
 
             for ingredient in ingredients:
                 self.tree.insert("", "end", values=(
-                    ingredient.ingredient_id,
-                    ingredient.name,
-                    f"${ingredient.price}",
-                    ingredient.quantity
-                ))
+                    ingredient["ingredient_id"],
+                    ingredient["ingredient_name"],
+                    f"${ingredient['ingredient_price']}",
+                    ingredient["ingredient_qoh"]
+            ))
+
         except Exception as e:
             self.tree.insert("", "end", values=(
                 f"Error loading data: {str(e)}", "", "", ""
             ))
 
-    def __del__(self):
-        """Clean up storage when page is destroyed"""
-        if hasattr(self, 'storage'):
-            self.storage.cleanup()
+    #def __del__(self):
+        #"""Clean up storage when page is destroyed"""
+        #if hasattr(self, 'storage'):
+            #self.storage.close()
 
 class RequestScrollsPage(tk.Frame): #ORDERS
     def __init__(self, parent, controller):
@@ -456,6 +609,7 @@ if __name__ == '__main__':
     configure_style(root)
     app = CalcifersLedgerApp(root)
     root.mainloop()
+
 
 
 
