@@ -5,7 +5,7 @@ import os
 class SQLStorage:
     def __init__(self, db_file="apothecary_inventory.db"):
         self.conn = sqlite3.connect(db_file)
-        self.conn.row_factory = sqlite3.Row  # Makes fetches dict-like
+        self.conn.row_factory = sqlite3.Row  
 
     def get_cursor(self):
         return self.conn.cursor()
