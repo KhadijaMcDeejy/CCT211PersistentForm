@@ -2,6 +2,43 @@ import sqlite3
 import csv
 import os
 
+class SQLStorage:
+    def __init__(self, db_file="apothecary_inventory.db"):
+        self.conn = sqlite3.connect(db_file)
+        self.conn.row_factory = sqlite3.Row  # Optional: makes fetches dict-like
+
+    def get_cursor(self):
+        return self.conn.cursor()
+
+    def fetch_all_ingredients(self):
+        cur = self.get_cursor()
+        cur.execute("SELECT ingredient_name, ingredient_qoh FROM Apothecary")
+        return cur.fetchall()
+
+    def close(self):
+        self.conn.close()
+
+    def fetch_total_orders_by_item_type(self):
+        cur = self.get_cursor()
+        #Gets Ingredients
+        cur.execute("""
+            SELECT a.ingredient_name AS item_name, SUM(oi.quantity) AS total_ordered
+            FROM Order_Ingredients oi
+            JOIN Apothecary a ON oi.ingredient_id = a.ingredient_id
+            GROUP BY a.ingredient_name
+        """)
+        ingredient_orders = cur.fetchall()
+    
+        #Gets Potions
+        cur.execute("""
+            SELECT p.potion_name AS item_name, SUM(op.quantity) AS total_ordered
+            FROM Order_Potions op
+            JOIN Potions p ON op.potion_id = p.potion_id
+            GROUP BY p.potion_name
+        """)
+        potion_orders = cur.fetchall()
+
+    return list(ingredient_orders) + list(potion_orders)
 
 def initialize_database():
     """Initialize the database - only run this manually when you want to reset"""
