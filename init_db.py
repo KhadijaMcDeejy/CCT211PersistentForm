@@ -5,7 +5,7 @@ import os
 class SQLStorage:
     def __init__(self, db_file="apothecary_inventory.db"):
         self.conn = sqlite3.connect(db_file)
-        self.conn.row_factory = sqlite3.Row  # Optional: makes fetches dict-like
+        self.conn.row_factory = sqlite3.Row  # Makes fetches dict-like
 
     def get_cursor(self):
         return self.conn.cursor()
@@ -19,26 +19,18 @@ class SQLStorage:
         self.conn.close()
 
     def fetch_total_orders_by_item_type(self):
+        """
+        Function comments: Will fetch the total ordered quantity per item from the Orders table.
+            Each item_name will have a sums of all quantity_req values (total number of times that item was ordered)
+        """
         cur = self.get_cursor()
-        #Gets Ingredients
         cur.execute("""
-            SELECT a.ingredient_name AS item_name, SUM(oi.quantity) AS total_ordered
-            FROM Order_Ingredients oi
-            JOIN Apothecary a ON oi.ingredient_id = a.ingredient_id
-            GROUP BY a.ingredient_name
+            SELECT item_name, SUM(quantity_req) AS total_ordered
+            FROM Orders
+            GROUP BY item_name
+            ORDER BY total_ordered DESC
         """)
-        ingredient_orders = cur.fetchall()
-    
-        #Gets Potions
-        cur.execute("""
-            SELECT p.potion_name AS item_name, SUM(op.quantity) AS total_ordered
-            FROM Order_Potions op
-            JOIN Potions p ON op.potion_id = p.potion_id
-            GROUP BY p.potion_name
-        """)
-        potion_orders = cur.fetchall()
-
-        return list(ingredient_orders) + list(potion_orders)
+        return cur.fetchall()
 
 def initialize_database():
     """Initialize the database - only run this manually when you want to reset"""
