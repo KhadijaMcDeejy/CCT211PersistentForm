@@ -38,7 +38,7 @@ class SQLStorage:
         """)
         potion_orders = cur.fetchall()
 
-    return list(ingredient_orders) + list(potion_orders)
+        return list(ingredient_orders) + list(potion_orders)
 
 def initialize_database():
     """Initialize the database - only run this manually when you want to reset"""
