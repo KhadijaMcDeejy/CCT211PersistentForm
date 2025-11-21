@@ -3,7 +3,7 @@ import sqlite3
 class SQLStorage():
     ''' Represents a persistence layer for the Potion Shop using SQLite
     '''
-    FILENAME = "apothecary_inventory.db"
+    FILENAME = "Howls_DB.db"  # Changed to match your new database
 
     def __init__(self):
         ''' initiate access to the data persistence layer
@@ -16,19 +16,19 @@ class SQLStorage():
         ''' return a single ingredient identified by ingredient_id
         '''
         self.data_access.execute(
-            "SELECT * FROM Apothecary WHERE ingredient_id = ?;", (ingredient_id,))
+            "SELECT * FROM ApothecaryInventoryTable WHERE Item_Id = ?;", (ingredient_id,))
         row = self.data_access.fetchone()
         if row:
-            return Ingredient(row[1], row[2], row[3], row[0])
+            return Ingredient(row[1], row[2], row[3], row[0])  # Name, Price, Qoh, Id
         return None
 
     def get_all_ingredients(self):
         ''' return all ingredients stored in the database
         '''
-        self.data_access.execute("SELECT * FROM Apothecary;")
+        self.data_access.execute("SELECT * FROM ApothecaryInventoryTable;")
         ingredients = []
         for row in self.data_access:
-            ingredients.append(Ingredient(row[1], row[2], row[3], row[0]))
+            ingredients.append(Ingredient(row[1], row[2], row[3], row[0]))  # Name, Price, Qoh, Id
         return ingredients
 
     def save_ingredient(self, ingredient):
@@ -36,12 +36,12 @@ class SQLStorage():
         '''
         if ingredient.ingredient_id == 0:
             self.data_access.execute(
-                "INSERT INTO Apothecary(ingredient_name, ingredient_price, ingredient_qoh) VALUES (?, ?, ?)",
+                "INSERT INTO ApothecaryInventoryTable(Item_Name, Item_Price, Item_Qoh) VALUES (?, ?, ?)",
                 (ingredient.name, ingredient.price, ingredient.quantity))
             ingredient.ingredient_id = self.data_access.lastrowid
         else:
             self.data_access.execute(
-                "UPDATE Apothecary SET ingredient_name=?, ingredient_price=?, ingredient_qoh=? WHERE ingredient_id=?",
+                "UPDATE ApothecaryInventoryTable SET Item_Name=?, Item_Price=?, Item_Qoh=? WHERE Item_Id=?",
                 (ingredient.name, ingredient.price, ingredient.quantity, ingredient.ingredient_id))
         self.conn.commit()
 
@@ -49,7 +49,7 @@ class SQLStorage():
         ''' delete an ingredient by id
         '''
         self.data_access.execute(
-            "DELETE FROM Apothecary WHERE ingredient_id=?",
+            "DELETE FROM ApothecaryInventoryTable WHERE Item_Id=?",
             (int(ingredient_id),))
         self.conn.commit()
 
@@ -58,19 +58,19 @@ class SQLStorage():
         ''' return a single potion identified by potion_id
         '''
         self.data_access.execute(
-            "SELECT * FROM Potions WHERE potion_id=?;", (potion_id,))
+            "SELECT * FROM PotionsPantryTable WHERE Item_Id=?;", (potion_id,))
         row = self.data_access.fetchone()
         if row:
-            return Potion(row[1], row[2], row[0])
+            return Potion(row[1], row[2], row[0])  # Name, Effect, Id
         return None
 
     def get_all_potions(self):
         ''' return all potions stored in the database
         '''
-        self.data_access.execute("SELECT * FROM Potions;")
+        self.data_access.execute("SELECT * FROM PotionsPantryTable;")
         potions = []
         for row in self.data_access:
-            potions.append(Potion(row[1], row[2], row[0]))
+            potions.append(Potion(row[1], row[2], row[0]))  # Name, Effect, Id
         return potions
 
     def save_potion(self, potion):
@@ -78,12 +78,12 @@ class SQLStorage():
         '''
         if potion.potion_id == 0:
             self.data_access.execute(
-                "INSERT INTO Potions(potion_name, effect_description) VALUES (?, ?)",
-                (potion.name, potion.effect))
+                "INSERT INTO PotionsPantryTable(Item_Name, Item_Description, Item_Recipe) VALUES (?, ?, ?)",
+                (potion.name, potion.effect, ""))  # Empty recipe for new potions
             potion.potion_id = self.data_access.lastrowid
         else:
             self.data_access.execute(
-                "UPDATE Potions SET potion_name=?, effect_description=? WHERE potion_id=?",
+                "UPDATE PotionsPantryTable SET Item_Name=?, Item_Description=? WHERE Item_Id=?",
                 (potion.name, potion.effect, potion.potion_id))
         self.conn.commit()
 
@@ -91,7 +91,7 @@ class SQLStorage():
         ''' delete a potion by id
         '''
         self.data_access.execute(
-            "DELETE FROM Potions WHERE potion_id=?",
+            "DELETE FROM PotionsPantryTable WHERE Item_Id=?",
             (int(potion_id),))
         self.conn.commit()
 
@@ -99,10 +99,16 @@ class SQLStorage():
     def get_all_orders(self):
         ''' return all orders
         '''
-        self.data_access.execute("SELECT * FROM Orders;")
+        self.data_access.execute("SELECT * FROM RequestLedgerTable;")
         orders = []
         for row in self.data_access:
-            orders.append({'order_id': row[0], 'customer_name': row[1], 'order_date': row[2]})
+            orders.append({
+                'order_id': row[0], 
+                'customer_name': row[1], 
+                'apothecary_order': row[2],
+                'potion_order': row[3],
+                'status': row[4]
+            })
         return orders
 
     def cleanup(self):
