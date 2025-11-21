@@ -2,36 +2,6 @@ import sqlite3
 import csv
 import os
 
-class SQLStorage:
-    def __init__(self, db_file="apothecary_inventory.db"):
-        self.conn = sqlite3.connect(db_file)
-        self.conn.row_factory = sqlite3.Row  
-
-    def get_cursor(self):
-        return self.conn.cursor()
-
-    def fetch_all_ingredients(self):
-        cur = self.get_cursor()
-        cur.execute("SELECT ingredient_name, ingredient_qoh FROM Apothecary")
-        return cur.fetchall()
-
-    def close(self):
-        self.conn.close()
-
-    def fetch_total_orders_by_item_type(self):
-        """
-        Function comments: Will fetch the total ordered quantity per item from the Orders table.
-            Each item_name will have a sums of all quantity_req values (total number of times that item was ordered)
-        """
-        cur = self.get_cursor()
-        cur.execute("""
-            SELECT item_name, SUM(quantity_req) AS total_ordered
-            FROM Orders
-            GROUP BY item_name
-            ORDER BY total_ordered DESC
-        """)
-        return cur.fetchall()
-
 def initialize_database():
     """Initialize the database - only run this manually when you want to reset"""
     conn = sqlite3.connect('apothecary_inventory.db')
@@ -41,8 +11,7 @@ def initialize_database():
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS Apothecary
                 (
-                    ingredient_id
-                    INTEGER
+                    ingredient_id INTEGER
                     PRIMARY
                     KEY
                     AUTOINCREMENT,

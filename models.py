@@ -105,13 +105,42 @@ class SQLStorage():
             orders.append({'order_id': row[0], 'customer_name': row[1], 'order_date': row[2]})
         return orders
 
-    def cleanup(self):
-        ''' call this before the app closes to ensure data integrity
-        '''
+    def fetch_total_orders_by_item_type(self):
+        """Will fetch the total ordered quantity per item from the Orders table"""
+        try:
+            self.data_access.execute("""
+                SELECT item_name, SUM(quantity_req) AS total_ordered
+                FROM Orders
+                GROUP BY item_name
+                ORDER BY total_ordered DESC
+            """)
+            rows = self.data_access.fetchall()
+            # Convert to list of dictionaries for compatibility
+            return [{'item_name': row[0], 'total_ordered': row[1]} for row in rows]
+        except Exception as e:
+            print(f"Error fetching order data: {e}")
+            return []
+
+    def update_ingredient(self, ingredient):
+        """Update an existing ingredient"""
+        self.data_access.execute(
+            "UPDATE Apothecary SET ingredient_name=?, ingredient_price=?, ingredient_qoh=? WHERE ingredient_id=?",
+            (ingredient.name, ingredient.price, ingredient.quantity, ingredient.ingredient_id)
+        )
+        self.conn.commit()
+
+    def close(self):
+        """Close the database connection"""
         if self.data_access:
             self.conn.commit()
             self.data_access.close()
+        if self.conn:
             self.conn.close()
+
+    def cleanup(self):
+        ''' call this before the app closes to ensure data integrity
+        '''
+        self.close()
 
 
 class Ingredient():
