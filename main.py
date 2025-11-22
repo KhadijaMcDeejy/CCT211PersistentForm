@@ -105,7 +105,7 @@ class CalcifersLedgerApp:
             frame = Page(parent = container, controller = self)
             self.frames[Page] = frame
             frame.grid(row = 0, column = 0, sticky = "nsew")
-        self.show_frame(LoginPage) #SHOWS THE LOGIN PAGE FRAME
+        self.show_frame(PotionPantryPage) #SHOWS THE LOGIN PAGE FRAME
 
     def show_frame(self, page_class):
         frame = self.frames[page_class]
@@ -332,9 +332,10 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
 
 class PotionPantryPage(tk.Frame):
     def __init__(self, parent, controller):
-        super().__init__(parent, bg="white")
+        super().__init__(parent, bg="black")
         self.controller = controller
         self.nav_frame = NavigationBar(self, controller)
+        self.nav_frame.configure(bg = "black")
         self.nav_frame.pack(fill="x", pady=5)
 
         # Create a storage instance using the models SQLStorage
@@ -346,28 +347,28 @@ class PotionPantryPage(tk.Frame):
         self.selected_potions = []
 
         # Main container with three frames
-        main_container = tk.Frame(self, bg="white")
+        main_container = tk.Frame(self, bg="black")
         main_container.pack(fill="both", expand=True, padx=20, pady=10)
 
-        # Configure grid weights for 1/4, 2/4, 1/4 distribution
-        main_container.columnconfigure(0, weight=1)  # Frame 1 (1/4)
-        main_container.columnconfigure(1, weight=2)  # Frame 2 (2/4)
-        main_container.columnconfigure(2, weight=1)  # Frame 3 (1/4)
+        # Configure grid weights for distribution
+        main_container.columnconfigure(0, weight=1)  # Frame 1
+        main_container.columnconfigure(1, weight=500)  # Frame 2
+        main_container.columnconfigure(2, weight=1)  # Frame 3
         main_container.rowconfigure(0, weight=1)
 
         # Frame 1 (LHS) - Ingredients
-        self.frame1 = tk.Frame(main_container, bg="light gray", relief="sunken", bd=2)
-        self.frame1.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        self.frame1 = tk.Frame(main_container, bg="lemon chiffon", relief="sunken", bd=2)
+        self.frame1.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
         self.create_ingredients_frame()
 
         # Frame 2 (Middle) - Display area
-        self.frame2 = tk.Frame(main_container, bg="black", relief="sunken", bd=2)  # Changed to black
+        self.frame2 = tk.Frame(main_container, bg="black", relief="sunken", bd=2)  
         self.frame2.grid(row=0, column=1, sticky="nsew", padx=5)
         self.create_display_frame()
 
         # Frame 3 (RHS) - Potions and Info
         self.frame3 = tk.Frame(main_container, bg="light blue", relief="sunken", bd=2)
-        self.frame3.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        self.frame3.grid(row=0, column=2, sticky="nsew", padx=0, pady=0)
         self.create_potions_frame()
 
         # Load initial data
@@ -377,15 +378,15 @@ class PotionPantryPage(tk.Frame):
     def create_ingredients_frame(self):
         """Create Frame 1 - Ingredients scrollable menu"""
         # Title
-        title_label = tk.Label(self.frame1, text="Ingredients", font=("Verdana", 14, "bold"),bg="light gray")
+        title_label = tk.Label(self.frame1, text="Ingredients", font=("Verdana", 14, "bold"),bg="lemon chiffon", fg="medium orchid")
         title_label.pack(pady=10)
         # Scrollable frame for ingredient buttons
-        button_container = tk.Frame(self.frame1, bg="light gray")
-        button_container.pack(fill="both", expand=True, padx=10, pady=5)
+        button_container = tk.Frame(self.frame1, bg="lemon chiffon")
+        button_container.pack(fill="both", expand=True, padx=0, pady=0)
         # Canvas and scrollbar
-        self.ingredient_canvas = tk.Canvas(button_container, bg="light gray", highlightthickness=0)
+        self.ingredient_canvas = tk.Canvas(button_container, bg="lemon chiffon", highlightthickness=0)
         scrollbar = ttk.Scrollbar(button_container, orient="vertical", command=self.ingredient_canvas.yview)
-        self.ingredient_button_frame = tk.Frame(self.ingredient_canvas, bg="light gray")
+        self.ingredient_button_frame = tk.Frame(self.ingredient_canvas, bg="lemon chiffon")
         self.ingredient_button_frame.bind(
             "<Configure>",
             lambda e: self.ingredient_canvas.configure(scrollregion=self.ingredient_canvas.bbox("all"))
@@ -398,29 +399,30 @@ class PotionPantryPage(tk.Frame):
 
     def create_display_frame(self):
         """Create Frame 2 - Display area for images and order creation"""
-        self.display_container = tk.Frame(self.frame2, bg="black")  # Changed to black
+        self.display_container = tk.Frame(self.frame2, bg="black")  
         self.display_container.pack(fill="both", expand=True)
 
         # Default display
         self.default_label = tk.Label(self.display_container,
-                                     text="Select an ingredient or potion to view details",
+                                     text="Select an ingredient or potion to view details\n\n"
+                                          "Select an ingredients' QoH to edit it\n\n"
+                                          "Select 'Create Order' button to create an order",
                                      font=("Verdana", 12), bg="black", fg="white")  # Added bg="black", fg="white"
         self.default_label.pack(expand=True)
 
         # Image display area ===========================================================================================
         # (initially hidden)
-        self.image_display_frame = tk.Frame(self.display_container, bg="black")  # Changed to black
+        self.image_display_frame = tk.Frame(self.display_container, bg="black")  
 
         # Image label
-        self.ingredient_image_label = tk.Label(self.image_display_frame, bg="black")  # Changed to black
+        self.ingredient_image_label = tk.Label(self.image_display_frame, bg="black")  
         self.ingredient_image_label.pack(expand=True, pady=20)
 
         # Buttons frame (for ingredient details)
-        self.buttons_frame = tk.Frame(self.image_display_frame, bg="black")  # Changed to black
+        self.buttons_frame = tk.Frame(self.image_display_frame, bg="black")  
         self.buttons_frame.pack(pady=20)
 
-        self.price_button = ttk.Button(self.buttons_frame, text="Price: $0.00", width=15,
-                                       command=self.price_not_implemented)
+        self.price_button = ttk.Button(self.buttons_frame, text="Price: $0.00", width=15)
         self.price_button.pack(side="left", padx=10, pady=10)
 
         self.qoh_button = ttk.Button(self.buttons_frame, text="QoH: 0", width=15,
@@ -428,10 +430,10 @@ class PotionPantryPage(tk.Frame):
         self.qoh_button.pack(side="left", padx=10)
 
         # Potion display area ==========================================================================================
-        self.potion_display_frame = tk.Frame(self.display_container, bg="black")  # Changed to black
+        self.potion_display_frame = tk.Frame(self.display_container, bg="black")  
 
         # Potion image label
-        self.potion_image_label = tk.Label(self.potion_display_frame, bg="black")  # Changed to black
+        self.potion_image_label = tk.Label(self.potion_display_frame, bg="black")  
         self.potion_image_label.pack(pady=20)
 
         # Potion effect text
@@ -443,21 +445,21 @@ class PotionPantryPage(tk.Frame):
         self.potion_effect_text.config(state="disabled")
 
         # Order creation area
-        self.order_creation_frame = tk.Frame(self.display_container, bg="black")  # Changed to black
+        self.order_creation_frame = tk.Frame(self.display_container, bg="black")  
 
         order_title = tk.Label(self.order_creation_frame, text="Create New Order",
                                font=("Verdana", 16, "bold"), bg="black", fg="white")  # Added bg="black", fg="white"
         order_title.pack(pady=10)
 
         # Customer name input
-        customer_frame = tk.Frame(self.order_creation_frame, bg="black")  # Changed to black
+        customer_frame = tk.Frame(self.order_creation_frame, bg="black")  
         customer_frame.pack(fill="x", pady=10)
         tk.Label(customer_frame, text="Customer Name:", font=("Verdana", 11), bg="black", fg="white").pack(side="left")  # Added bg="black", fg="white"
         self.customer_entry = ttk.Entry(customer_frame, width=25)
         self.customer_entry.pack(side="left", padx=10)
 
         # Selected ingredients display
-        ing_frame = tk.Frame(self.order_creation_frame, bg="black")  # Changed to black
+        ing_frame = tk.Frame(self.order_creation_frame, bg="black")  
         ing_frame.pack(fill="both", expand=True, pady=10)
         tk.Label(ing_frame, text="Selected Ingredients:", font=("Verdana", 11, "bold"), bg="black", fg="white").pack(anchor="w")  # Added bg="black", fg="white"
         self.ingredients_text = tk.Text(ing_frame, wrap="word", width=40, height=6,
@@ -466,7 +468,7 @@ class PotionPantryPage(tk.Frame):
         self.ingredients_text.config(state="disabled")
 
         # Selected potions display
-        pot_frame = tk.Frame(self.order_creation_frame, bg="black")  # Changed to black
+        pot_frame = tk.Frame(self.order_creation_frame, bg="black")  
         pot_frame.pack(fill="both", expand=True, pady=10)
         tk.Label(pot_frame, text="Selected Potions:", font=("Verdana", 11, "bold"), bg="black", fg="white").pack(anchor="w")  # Added bg="black", fg="white"
         self.potions_text = tk.Text(pot_frame, wrap="word", width=40, height=6,
@@ -475,7 +477,7 @@ class PotionPantryPage(tk.Frame):
         self.potions_text.config(state="disabled")
 
         # Order buttons
-        order_buttons = tk.Frame(self.order_creation_frame, bg="black")  # Changed to black
+        order_buttons = tk.Frame(self.order_creation_frame, bg="black")  
         order_buttons.pack(pady=20)
         self.create_order_btn = ttk.Button(order_buttons, text="Create Order",
                                            command=self.create_order)
@@ -488,7 +490,7 @@ class PotionPantryPage(tk.Frame):
         """Create Frame 3 - Potions scrollable menu and info"""
         # Title
         title_label = tk.Label(self.frame3, text="Potions", font=("Verdana", 14, "bold"),
-                               bg="light blue")
+                               bg="light blue",fg="navy")
         title_label.pack(pady=10)
 
         # Scrollable frame for potion buttons
@@ -511,14 +513,10 @@ class PotionPantryPage(tk.Frame):
         self.potion_canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # Info button at bottom
-        info_button = ttk.Button(self.frame3, text="ℹ️ Info", command=self.show_info, width=8)
-        info_button.pack(side="bottom", anchor="sw", padx=10, pady=10)
-
         # Create Order button
         create_order_btn = ttk.Button(self.frame3, text="Create Order",
                                       command=self.start_order_creation)
-        create_order_btn.pack(side="bottom", anchor="sw", padx=10, pady=10)
+        create_order_btn.pack(side="bottom", anchor="sw", padx=100, pady=10)
 
     def load_ingredients_menu(self):
         """Load ingredients into Frame 1"""
@@ -537,7 +535,7 @@ class PotionPantryPage(tk.Frame):
                     text=ingredient.name,
                     command=lambda ing=ingredient: self.show_ingredient_details(ing)
                 )
-                btn.pack(fill="x", pady=2, padx=5)
+                btn.pack(fill="x", pady=5, padx=(20,0))
 
         except Exception as e:
             print(f"Error loading ingredients: {e}")
@@ -560,7 +558,7 @@ class PotionPantryPage(tk.Frame):
                     text=potion.name,
                     command=lambda pot=potion: self.show_potion_details(pot)
                 )
-                btn.pack(fill="x", pady=2, padx=5)
+                btn.pack(fill="x", pady=5, padx=(30,0))
 
         except Exception as e:
             print(f"Error loading potions: {e}")
@@ -695,7 +693,7 @@ class PotionPantryPage(tk.Frame):
 
         editor = tk.Toplevel(self)
         editor.title(f"Edit Quantity - {self.current_ingredient.name}")
-        editor.geometry("300x150")
+        editor.geometry("300x200")
         editor.transient(self)
         editor.grab_set()
 
@@ -794,16 +792,6 @@ class PotionPantryPage(tk.Frame):
             placeholder = Image.new('RGB', (400, 400), (0, 0, 0))
             photo = ImageTk.PhotoImage(placeholder)
             return photo
-
-    def price_not_implemented(self):
-        messagebox.showinfo("Info", "Price editing not implemented")
-
-    def show_info(self):
-        messagebox.showinfo("Interface Guide",
-                            "Left: Browse ingredients\n"
-                            "Middle: View details\n"
-                            "Right: Browse potions & create orders\n\n"
-                            "Click 'Create Order' to start order creation mode.")
 
 class RequestScrollsPage(tk.Frame): #ORDERS
     def __init__(self, parent, controller):
