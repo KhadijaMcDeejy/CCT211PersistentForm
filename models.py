@@ -55,8 +55,7 @@ class SQLStorage():
 
     # ===== POTIONS METHODS =====
     def get_potion(self, potion_id):
-        ''' return a single potion identified by potion_id
-        '''
+        ''' return a single potion identified by potion_id '''
         self.data_access.execute(
             "SELECT * FROM Potions WHERE potion_id=?;", (potion_id,))
         row = self.data_access.fetchone()
@@ -72,6 +71,29 @@ class SQLStorage():
         for row in self.data_access:
             potions.append(Potion(row[1], row[2], row[0]))
         return potions
+
+    def get_potion_ingredients(self, potion_id):
+        ''' return all ingredients for a specific potion '''
+        self.data_access.execute("""
+                                 SELECT a.ingredient_id,
+                                        a.ingredient_name,
+                                        a.ingredient_price,
+                                        a.ingredient_qoh,
+                                        pi.quantity
+                                 FROM Potion_Ingredients pi
+                                          JOIN Apothecary a ON pi.ingredient_id = a.ingredient_id
+                                 WHERE pi.potion_id = ?;
+                                 """, (potion_id,))
+
+        # Fetch all results immediately to avoid cursor conflicts
+        rows = self.data_access.fetchall()
+
+        ingredients = []
+        for row in rows:
+            ingredient = Ingredient(row[1], row[2], row[3], row[0])
+            ingredient.quantity_in_recipe = row[4]  # quantity needed for this potion
+            ingredients.append(ingredient)
+        return ingredients
 
     def save_potion(self, potion):
         ''' add or update a potion
@@ -108,12 +130,24 @@ class SQLStorage():
     def fetch_total_orders_by_item_type(self):
         """Will fetch the total ordered quantity per item from the Orders table"""
         try:
+            # Combine ingredients and potions from orders
             self.data_access.execute("""
-                SELECT item_name, SUM(quantity_req) AS total_ordered
-                FROM Orders
-                GROUP BY item_name
-                ORDER BY total_ordered DESC
-            """)
+                                     SELECT 'Ingredient: ' || a.ingredient_name as item_name,
+                                            SUM(oi.quantity)                    as total_ordered
+                                     FROM Order_Ingredients oi
+                                              JOIN Apothecary a ON oi.ingredient_id = a.ingredient_id
+                                     GROUP BY a.ingredient_name
+
+                                     UNION ALL
+
+                                     SELECT 'Potion: ' || p.potion_name as item_name,
+                                            SUM(op.quantity)            as total_ordered
+                                     FROM Order_Potions op
+                                              JOIN Potions p ON op.potion_id = p.potion_id
+                                     GROUP BY p.potion_name
+
+                                     ORDER BY total_ordered DESC
+                                     """)
             rows = self.data_access.fetchall()
             # Convert to list of dictionaries for compatibility
             return [{'item_name': row[0], 'total_ordered': row[1]} for row in rows]
@@ -142,7 +176,6 @@ class SQLStorage():
         '''
         self.close()
 
-
 class Ingredient():
     def __init__(self, name="", price=0, quantity=0, ingredient_id=0):
         self.ingredient_id = ingredient_id
@@ -153,12 +186,14 @@ class Ingredient():
     def __str__(self):
         return f'Ingredient#{self.ingredient_id}: {self.name}, Price: {self.price}, Qty: {self.quantity}'
 
-
 class Potion():
     def __init__(self, name="", effect="", potion_id=0):
         self.potion_id = potion_id
         self.name = name
         self.effect = effect
+        self.ingredients = []
 
     def __str__(self):
-        return f'Potion#{self.potion_id}: {self.name}, Effect: {self.effect}'
+        ingredients_str = ", ".join(
+            [f"{ing.name} ({getattr(ing, 'quantity_in_recipe', 1)})" for ing in self.ingredients])
+        return f'Potion#{self.potion_id}: {self.name}, Effect: {self.effect}, Ingredients: {ingredients_str}'

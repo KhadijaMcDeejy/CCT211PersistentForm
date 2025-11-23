@@ -42,10 +42,8 @@ def initialize_database():
                 (
                     order_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     customer_name VARCHAR (100) NOT NULL,
-                    order_status INTEGER NOT NULL, -- 0:ongoing, 1:requested, 2:completed, 3:unable to complete
-                    CHECK (order_status BETWEEN 0 AND 4),
-                    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    
+                    order_status INTEGER NOT NULL, -- 0:requested, 1:ongoing, 2:completed, 3:unable to complete
+                    CHECK (order_status BETWEEN 0 AND 4)
                     )''')
 
     cur.execute('''
@@ -81,7 +79,6 @@ def initialize_database():
     conn.commit()
     conn.close()
     print("Database initialization complete!")
-
 
 def populate_from_csv(cur):
     """Populate database with data from CSV file"""
@@ -206,10 +203,6 @@ def populate_from_csv(cur):
 
     except Exception as e:
         print(f"Error reading CSV file: {e}")
-
-
-if __name__ == '__main__':
-    initialize_database()
 
 if __name__ == '__main__':
     initialize_database()

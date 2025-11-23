@@ -399,27 +399,27 @@ class PotionPantryPage(tk.Frame):
 
     def create_display_frame(self):
         """Create Frame 2 - Display area for images and order creation"""
-        self.display_container = tk.Frame(self.frame2, bg="black")  
+        self.display_container = tk.Frame(self.frame2, bg="black")
         self.display_container.pack(fill="both", expand=True)
 
         # Default display
         self.default_label = tk.Label(self.display_container,
-                                     text="Select an ingredient or potion to view details\n\n"
-                                          "Select an ingredients' QoH to edit it\n\n"
-                                          "Select 'Create Order' button to create an order",
-                                     font=("Verdana", 12), bg="black", fg="white")  # Added bg="black", fg="white"
+                                      text="Select an ingredient or potion to view details\n\n"
+                                           "Select an ingredients' QoH to edit it\n\n"
+                                           "Select 'Create Order' button to create an order",
+                                      font=("Verdana", 12), bg="black", fg="white")
         self.default_label.pack(expand=True)
 
         # Image display area ===========================================================================================
         # (initially hidden)
-        self.image_display_frame = tk.Frame(self.display_container, bg="black")  
+        self.image_display_frame = tk.Frame(self.display_container, bg="black")
 
         # Image label
-        self.ingredient_image_label = tk.Label(self.image_display_frame, bg="black")  
+        self.ingredient_image_label = tk.Label(self.image_display_frame, bg="black")
         self.ingredient_image_label.pack(expand=True, pady=20)
 
         # Buttons frame (for ingredient details)
-        self.buttons_frame = tk.Frame(self.image_display_frame, bg="black")  
+        self.buttons_frame = tk.Frame(self.image_display_frame, bg="black")
         self.buttons_frame.pack(pady=20)
 
         self.price_button = ttk.Button(self.buttons_frame, text="Price: $0.00", width=15)
@@ -430,54 +430,62 @@ class PotionPantryPage(tk.Frame):
         self.qoh_button.pack(side="left", padx=10)
 
         # Potion display area ==========================================================================================
-        self.potion_display_frame = tk.Frame(self.display_container, bg="black")  
-
+        self.potion_display_frame = tk.Frame(self.display_container, bg="black")
         # Potion image label
-        self.potion_image_label = tk.Label(self.potion_display_frame, bg="black")  
-        self.potion_image_label.pack(pady=20)
-
+        self.potion_image_label = tk.Label(self.potion_display_frame, bg="black")
+        self.potion_image_label.pack(pady=0)
         # Potion effect text
-        self.potion_effect_text = tk.Text(self.potion_display_frame, wrap="word", width=40, height=10,
+        self.potion_effect_text = tk.Text(self.potion_display_frame, wrap="word", width=40, height=5,
                                           font=("Verdana", 10), bg="black", fg="white",
                                           relief="flat", bd=0,
-                                          highlightthickness=0)  # Changed relief to "flat", bd=0, and added highlightthickness=0
-        self.potion_effect_text.pack(fill="both", expand=True, pady=5, padx=15)
+                                          highlightthickness=0)
+        self.potion_effect_text.pack(fill="none", expand=0, pady=(0,0), padx=(50,0), side="left")
         self.potion_effect_text.config(state="disabled")
 
+        # Potion Ingredients text area
+        self.potion_ingredients_text = tk.Text(self.potion_display_frame, wrap="word", width=40, height=6,
+                                          font=("Verdana", 10), bg="black", fg="white",
+                                          relief="flat", bd=0,
+                                          highlightthickness=0)
+        self.potion_ingredients_text.pack(fill="none", expand=0, pady=(0,0), padx=(0,0), side="right")
+        self.potion_ingredients_text.config(state="disabled")
+
         # Order creation area
-        self.order_creation_frame = tk.Frame(self.display_container, bg="black")  
+        self.order_creation_frame = tk.Frame(self.display_container, bg="black")
 
         order_title = tk.Label(self.order_creation_frame, text="Create New Order",
-                               font=("Verdana", 16, "bold"), bg="black", fg="white")  # Added bg="black", fg="white"
+                               font=("Verdana", 16, "bold"), bg="black", fg="white")
         order_title.pack(pady=10)
 
         # Customer name input
-        customer_frame = tk.Frame(self.order_creation_frame, bg="black")  
+        customer_frame = tk.Frame(self.order_creation_frame, bg="black")
         customer_frame.pack(fill="x", pady=10)
-        tk.Label(customer_frame, text="Customer Name:", font=("Verdana", 11), bg="black", fg="white").pack(side="left")  # Added bg="black", fg="white"
+        tk.Label(customer_frame, text="Customer Name:", font=("Verdana", 11), bg="black", fg="white").pack(side="left")
         self.customer_entry = ttk.Entry(customer_frame, width=25)
         self.customer_entry.pack(side="left", padx=10)
 
         # Selected ingredients display
-        ing_frame = tk.Frame(self.order_creation_frame, bg="black")  
+        ing_frame = tk.Frame(self.order_creation_frame, bg="black")
         ing_frame.pack(fill="both", expand=True, pady=10)
-        tk.Label(ing_frame, text="Selected Ingredients:", font=("Verdana", 11, "bold"), bg="black", fg="white").pack(anchor="w")  # Added bg="black", fg="white"
+        tk.Label(ing_frame, text="Selected Ingredients:", font=("Verdana", 11, "bold"), bg="black", fg="white").pack(
+            anchor="w")
         self.ingredients_text = tk.Text(ing_frame, wrap="word", width=40, height=6,
-                                        font=("Verdana", 9), bg="black", fg="white", relief="sunken", bd=1)  # Added bg="black", fg="white"
+                                        font=("Verdana", 9), bg="black", fg="white", relief="sunken", bd=1)
         self.ingredients_text.pack(fill="both", expand=True, pady=5)
         self.ingredients_text.config(state="disabled")
 
         # Selected potions display
-        pot_frame = tk.Frame(self.order_creation_frame, bg="black")  
+        pot_frame = tk.Frame(self.order_creation_frame, bg="black")
         pot_frame.pack(fill="both", expand=True, pady=10)
-        tk.Label(pot_frame, text="Selected Potions:", font=("Verdana", 11, "bold"), bg="black", fg="white").pack(anchor="w")  # Added bg="black", fg="white"
+        tk.Label(pot_frame, text="Selected Potions:", font=("Verdana", 11, "bold"), bg="black", fg="white").pack(
+            anchor="w")
         self.potions_text = tk.Text(pot_frame, wrap="word", width=40, height=6,
-                                    font=("Verdana", 9), bg="black", fg="white", relief="sunken", bd=1)  # Added bg="black", fg="white"
+                                    font=("Verdana", 9), bg="black", fg="white", relief="sunken", bd=1)
         self.potions_text.pack(fill="both", expand=True, pady=5)
         self.potions_text.config(state="disabled")
 
         # Order buttons
-        order_buttons = tk.Frame(self.order_creation_frame, bg="black")  
+        order_buttons = tk.Frame(self.order_creation_frame, bg="black")
         order_buttons.pack(pady=20)
         self.create_order_btn = ttk.Button(order_buttons, text="Create Order",
                                            command=self.create_order)
@@ -610,6 +618,23 @@ class PotionPantryPage(tk.Frame):
         self.potion_effect_text.delete(1.0, tk.END)
         self.potion_effect_text.insert(1.0, potion.effect)
         self.potion_effect_text.config(state="disabled")
+
+        # Update ingredients text - FIXED THIS PART
+        self.potion_ingredients_text.config(state="normal")
+        self.potion_ingredients_text.delete(1.0, tk.END)
+
+        # Get the ingredients for this potion
+        ingredients_list = self.storage.get_potion_ingredients(potion.potion_id)
+
+        if ingredients_list:
+            ingredients_text = "Ingredients:\n"
+            for ingredient in ingredients_list:
+                ingredients_text += f"• {ingredient.name}: {getattr(ingredient, 'quantity_in_recipe', 1)} units\n"
+        else:
+            ingredients_text = "No ingredients listed for this potion."
+
+        self.potion_ingredients_text.insert(1.0, ingredients_text)
+        self.potion_ingredients_text.config(state="disabled")
 
     def hide_all_displays(self):
         """Hide all display frames"""
