@@ -11,163 +11,64 @@ def initialize_database():
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS Apothecary
                 (
-                    ingredient_id INTEGER
-                    PRIMARY
-                    KEY
-                    AUTOINCREMENT,
-                    ingredient_name
-                    VARCHAR
-                (
-                    100
-                ) UNIQUE NOT NULL,
+                    ingredient_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ingredient_name VARCHAR (100) UNIQUE NOT NULL,
                     ingredient_price INTEGER NOT NULL,
                     ingredient_qoh INTEGER NOT NULL,
-                    CHECK
-                (
-                    ingredient_qoh
-                    BETWEEN
-                    0
-                    AND
-                    1000
-                )
-                    )
-                ''')
+                    CHECK (ingredient_qoh BETWEEN 0 AND 1000)
+                    )''')
 
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS Potions
                 (
-                    potion_id
-                    INTEGER
-                    PRIMARY
-                    KEY
-                    AUTOINCREMENT,
-                    potion_name
-                    VARCHAR
-                (
-                    100
-                ) UNIQUE NOT NULL,
+                    potion_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    potion_name VARCHAR (100) UNIQUE NOT NULL,
                     effect_description TEXT NOT NULL
-                    )
-                ''')
+                    )''')
 
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS Potion_Ingredients
                 (
-                    potion_id
-                    INTEGER,
-                    ingredient_id
-                    INTEGER,
-                    quantity
-                    INTEGER
-                    DEFAULT
-                    1,
-                    PRIMARY
-                    KEY
-                (
-                    potion_id,
-                    ingredient_id
-                ),
-                    FOREIGN KEY
-                (
-                    potion_id
-                ) REFERENCES Potions
-                (
-                    potion_id
-                ),
-                    FOREIGN KEY
-                (
-                    ingredient_id
-                ) REFERENCES Apothecary
-                (
-                    ingredient_id
-                )
-                    )
-                ''')
+                    potion_id INTEGER,
+                    ingredient_id INTEGER,
+                    quantity INTEGER DEFAULT 1,
+                    PRIMARY KEY (potion_id, ingredient_id ),
+                    FOREIGN KEY (potion_id) REFERENCES Potions (potion_id),
+                    FOREIGN KEY (ingredient_id) REFERENCES Apothecary (ingredient_id)
+                    )''')
 
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS Orders
                 (
-                    order_id
-                    INTEGER
-                    PRIMARY
-                    KEY
-                    AUTOINCREMENT,
-                    customer_name
-                    VARCHAR
-                (
-                    100
-                ) NOT NULL,
-                    order_date DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
+                    order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    customer_name VARCHAR (100) NOT NULL,
+                    order_status INTEGER NOT NULL, -- 0:ongoing, 1:requested, 2:completed, 3:unable to complete
+                    CHECK (order_status BETWEEN 0 AND 4),
+                    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    
+                    )''')
 
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS Order_Ingredients
                 (
-                    order_id
-                    INTEGER,
-                    ingredient_id
-                    INTEGER,
-                    quantity
-                    INTEGER
-                    DEFAULT
-                    1,
-                    PRIMARY
-                    KEY
-                (
-                    order_id,
-                    ingredient_id
-                ),
-                    FOREIGN KEY
-                (
-                    order_id
-                ) REFERENCES Orders
-                (
-                    order_id
-                ),
-                    FOREIGN KEY
-                (
-                    ingredient_id
-                ) REFERENCES Apothecary
-                (
-                    ingredient_id
-                )
-                    )
-                ''')
+                    order_id INTEGER,
+                    ingredient_id INTEGER,
+                    quantity INTEGER DEFAULT 1,
+                    PRIMARY KEY (order_id,ingredient_id),
+                    FOREIGN KEY (order_id) REFERENCES Orders (order_id),
+                    FOREIGN KEY (ingredient_id) REFERENCES Apothecary (ingredient_id)
+                    )''')
 
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS Order_Potions
                 (
-                    order_id
-                    INTEGER,
-                    potion_id
-                    INTEGER,
-                    quantity
-                    INTEGER
-                    DEFAULT
-                    1,
-                    PRIMARY
-                    KEY
-                (
-                    order_id,
-                    potion_id
-                ),
-                    FOREIGN KEY
-                (
-                    order_id
-                ) REFERENCES Orders
-                (
-                    order_id
-                ),
-                    FOREIGN KEY
-                (
-                    potion_id
-                ) REFERENCES Potions
-                (
-                    potion_id
-                )
-                    )
-                ''')
+                    order_id INTEGER,
+                    potion_id INTEGER,
+                    quantity INTEGER DEFAULT 1,
+                    PRIMARY KEY (order_id,potion_id),
+                    FOREIGN KEY (order_id) REFERENCES Orders (order_id),
+                    FOREIGN KEY (potion_id) REFERENCES Potions (potion_id)
+                    )''')
 
     # Check if database is empty and populate with CSV data
     cur.execute("SELECT COUNT(*) FROM Apothecary")
@@ -195,6 +96,7 @@ def populate_from_csv(cur):
     potions = set()
     potion_recipes = {}
     customers = set()
+    orders_data = []  # Store order information
 
     try:
         with open(csv_filename, 'r', encoding='utf-8') as csvfile:
@@ -225,6 +127,14 @@ def populate_from_csv(cur):
                 if len(row) > 6 and row[6].strip():  # Has customer data
                     customer_name = row[6].strip()
                     customers.add(customer_name)
+
+                    # Process order data from the last column (column 9)
+                    if len(row) > 9 and row[9].strip():
+                        order_items = row[9].strip()
+                        orders_data.append({
+                            'customer_name': customer_name,
+                            'order_items': order_items
+                        })
 
         # Insert ingredients
         ingredient_id_map = {}
@@ -258,18 +168,48 @@ def populate_from_csv(cur):
                             (potion_id, ingredient_id, 1)
                         )
 
-        # Insert customers as orders
-        for customer_name in customers:
-            cur.execute(
-                "INSERT INTO Orders (customer_name) VALUES (?)",
-                (customer_name,)
-            )
+        # Insert orders with items from the last column
+        for order_info in orders_data:
+            customer_name = order_info['customer_name']
+            order_items = order_info['order_items']
 
-        print(f"Added {len(ingredients)} ingredients, {len(potions)} potions, and {len(customers)} customers")
+            # Create the order
+            cur.execute(
+                "INSERT INTO Orders (customer_name, order_status) VALUES (?, ?)",
+                (customer_name, 1)  # status 1 = requested
+            )
+            order_id = cur.lastrowid
+
+            # Parse order items (could be potions or ingredients)
+            items = [item.strip() for item in order_items.split('\n') if item.strip()]
+
+            for item in items:
+                # Check if it's a potion
+                if item in potion_id_map:
+                    potion_id = potion_id_map[item]
+                    cur.execute(
+                        "INSERT INTO Order_Potions (order_id, potion_id, quantity) VALUES (?, ?, ?)",
+                        (order_id, potion_id, 1)
+                    )
+                # Check if it's an ingredient
+                elif item in ingredient_id_map:
+                    ingredient_id = ingredient_id_map[item]
+                    cur.execute(
+                        "INSERT INTO Order_Ingredients (order_id, ingredient_id, quantity) VALUES (?, ?, ?)",
+                        (order_id, ingredient_id, 1)
+                    )
+                else:
+                    print(f"Warning: Unknown item '{item}' in order for customer '{customer_name}'")
+
+        print(
+            f"Added {len(ingredients)} ingredients, {len(potions)} potions, {len(customers)} customers, and {len(orders_data)} orders")
 
     except Exception as e:
         print(f"Error reading CSV file: {e}")
 
+
+if __name__ == '__main__':
+    initialize_database()
 
 if __name__ == '__main__':
     initialize_database()
