@@ -173,7 +173,7 @@ def populate_from_csv(cur):
             # Create the order
             cur.execute(
                 "INSERT INTO Orders (customer_name, order_status) VALUES (?, ?)",
-                (customer_name, 1)  # status 1 = requested
+                (customer_name, 0)
             )
             order_id = cur.lastrowid
 
