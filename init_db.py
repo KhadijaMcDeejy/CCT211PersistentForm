@@ -100,7 +100,7 @@ def populate_from_csv(cur):
             reader = csv.reader(csvfile)
             headers = next(reader)  # Skip header row
 
-            for row in reader:
+            for row_num, row in enumerate(reader, start=2):
                 if len(row) > 0 and row[0].strip():  # Has ingredient data
                     ingredient_name = row[0].strip()
                     try:
@@ -125,12 +125,22 @@ def populate_from_csv(cur):
                     customer_name = row[6].strip()
                     customers.add(customer_name)
 
-                    # Process order data from the last column (column 9)
-                    if len(row) > 9 and row[9].strip():
-                        order_items = row[9].strip()
+                    # Process BOTH types of orders
+                    apothecary_items = ""
+                    brewery_items = ""
+
+                    if len(row) > 7 and row[7].strip():
+                        apothecary_items = row[7].strip()
+
+                    if len(row) > 8 and row[8].strip():
+                        brewery_items = row[8].strip()
+
+                    # Only add if there are actual items (not just "0" status)
+                    if (apothecary_items and apothecary_items != "0") or (brewery_items and brewery_items != "0"):
                         orders_data.append({
                             'customer_name': customer_name,
-                            'order_items': order_items
+                            'apothecary_items': apothecary_items,
+                            'brewery_items': brewery_items
                         })
 
         # Insert ingredients
@@ -165,44 +175,70 @@ def populate_from_csv(cur):
                             (potion_id, ingredient_id, 1)
                         )
 
-        # Insert orders with items from the last column
+        # Insert orders with BOTH types of items
         for order_info in orders_data:
             customer_name = order_info['customer_name']
-            order_items = order_info['order_items']
+            apothecary_items = order_info['apothecary_items']
+            brewery_items = order_info['brewery_items']
 
             # Create the order
             cur.execute(
                 "INSERT INTO Orders (customer_name, order_status) VALUES (?, ?)",
-                (customer_name, 0)
+                (customer_name, 0)  # All orders start as requested (status 0)
             )
             order_id = cur.lastrowid
 
-            # Parse order items (could be potions or ingredients)
-            items = [item.strip() for item in order_items.split('\n') if item.strip()]
-
-            for item in items:
-                # Check if it's a potion
-                if item in potion_id_map:
-                    potion_id = potion_id_map[item]
-                    cur.execute(
-                        "INSERT INTO Order_Potions (order_id, potion_id, quantity) VALUES (?, ?, ?)",
-                        (order_id, potion_id, 1)
-                    )
-                # Check if it's an ingredient
-                elif item in ingredient_id_map:
-                    ingredient_id = ingredient_id_map[item]
-                    cur.execute(
-                        "INSERT INTO Order_Ingredients (order_id, ingredient_id, quantity) VALUES (?, ?, ?)",
-                        (order_id, ingredient_id, 1)
-                    )
+            # Parse Apothecary items (ingredients) - FIXED: Skip header words
+            if apothecary_items and apothecary_items != "0":
+                items = []
+                if '\n' in apothecary_items:
+                    items = [item.strip() for item in apothecary_items.split('\n') if item.strip()]
                 else:
-                    print(f"Warning: Unknown item '{item}' in order for customer '{customer_name}'")
+                    items = [item.strip() for item in apothecary_items.split(',') if item.strip()]
+
+                for item in items:
+                    item = item.strip()
+                    # Skip header words that aren't actual ingredients
+                    if item.lower() in ['ingredients', 'potions']:
+                        continue
+                    if item in ingredient_id_map:
+                        ingredient_id = ingredient_id_map[item]
+                        cur.execute(
+                            "INSERT INTO Order_Ingredients (order_id, ingredient_id, quantity) VALUES (?, ?, ?)",
+                            (order_id, ingredient_id, 1)
+                        )
+                    else:
+                        print(f"Warning: Unknown ingredient '{item}' in order for customer '{customer_name}'")
+
+            # Parse Brewery items (potions) - FIXED: Skip header words
+            if brewery_items and brewery_items != "0":
+                items = []
+                if '\n' in brewery_items:
+                    items = [item.strip() for item in brewery_items.split('\n') if item.strip()]
+                else:
+                    items = [item.strip() for item in brewery_items.split(',') if item.strip()]
+
+                for item in items:
+                    item = item.strip()
+                    # Skip header words that aren't actual potions
+                    if item.lower() in ['ingredients', 'potions']:
+                        continue
+                    if item in potion_id_map:
+                        potion_id = potion_id_map[item]
+                        cur.execute(
+                            "INSERT INTO Order_Potions (order_id, potion_id, quantity) VALUES (?, ?, ?)",
+                            (order_id, potion_id, 1)
+                        )
+                    else:
+                        print(f"Warning: Unknown potion '{item}' in order for customer '{customer_name}'")
 
         print(
-            f"Added {len(ingredients)} ingredients, {len(potions)} potions, {len(customers)} customers, and {len(orders_data)} orders")
+            f"Added {len(ingredients)} ingredients, {len(potions)} potions, {len(customers)} customers, and {len(orders_data)} orders with items")
 
     except Exception as e:
         print(f"Error reading CSV file: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == '__main__':
     initialize_database()

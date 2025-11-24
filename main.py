@@ -84,7 +84,7 @@ class CalcifersLedgerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Calcifer’s Ledger - Magic Record Keeping System")
-        self.root.geometry("1350x600")
+        self.root.geometry("1400x600")
 
         self.valid_logins = {
             "howl": "fire123",
@@ -708,10 +708,36 @@ class PotionPantryPage(tk.Frame):
             messagebox.showerror("Error", "Please select at least one ingredient or potion.")
             return
 
-        # Here you would save the order to your database
-        # For now, just show a success message
-        messagebox.showinfo("Success", f"Order created for {customer_name}!")
-        self.cancel_order_creation()
+        try:
+            # Create the order in the database
+            self.storage.data_access.execute(
+                "INSERT INTO Orders (customer_name, order_status) VALUES (?, ?)",
+                (customer_name, 0)  # Status 0 = Requested
+            )
+            order_id = self.storage.data_access.lastrowid
+
+            # Add selected ingredients to Order_Ingredients
+            for ingredient in self.selected_ingredients:
+                self.storage.data_access.execute(
+                    "INSERT INTO Order_Ingredients (order_id, ingredient_id, quantity) VALUES (?, ?, ?)",
+                    (order_id, ingredient.ingredient_id, 1)
+                )
+
+            # Add selected potions to Order_Potions
+            for potion in self.selected_potions:
+                self.storage.data_access.execute(
+                    "INSERT INTO Order_Potions (order_id, potion_id, quantity) VALUES (?, ?, ?)",
+                    (order_id, potion.potion_id, 1)
+                )
+
+            self.storage.conn.commit()
+
+            messagebox.showinfo("Success", f"Order #{order_id} created for {customer_name}!")
+            self.cancel_order_creation()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to create order: {str(e)}")
+            print(f"Order creation error: {e}")
 
     def show_qoh_editor(self):
         """Show QoH editor"""
@@ -860,7 +886,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
 
         # Status Legend Frame
         legend_frame = tk.Frame(left_container, bg="white", relief="raised", bd=2)
-        legend_frame.pack(fill="x", pady=(0, 10))
+        legend_frame.pack(fill="y", pady=(10,10), expand=True)
 
         ttk.Label(
             legend_frame,
@@ -872,9 +898,9 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         # Status items
         status_items = [
             ("Requested", "New orders waiting to be processed", "light yellow"),
-            ("Ongoing", "Orders being prepared", "light coral"),
+            ("Ongoing", "Orders being prepared", "sky blue"),
             ("Completed", "Successfully fulfilled orders", "light green"),
-            ("Cannot Complete", "Insufficient ingredients", "light coral")
+            ("Cannot Complete", "Insufficient ingredients", "red4")
         ]
 
         for status, description, color in status_items:
@@ -903,176 +929,189 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
                 background="white"
             ).pack(anchor="w")
 
-        # Update Button
-        update_btn = ttk.Button(
-            left_container,
-            text="Refresh Orders",
-            command=self.refresh_orders
-        )
-        update_btn.pack(side="bottom", fill="x", pady=(10, 0))
-
-        # ===== RIGHT COLUMN - Orders Table =====
+        # ===== RIGHT COLUMN - Order Cards =====
         right_container = tk.Frame(main_container, bg="black")
         right_container.pack(side="right", fill="both", expand=True)
 
-        # Table Header
-        header_frame = tk.Frame(right_container, bg="black")
-        header_frame.pack(fill="x", pady=(0, 10))
+        # Scrollable frame for order cards
+        cards_frame = tk.Frame(right_container, bg="black")
+        cards_frame.pack(fill="both", expand=True)
 
-        ttk.Label(
-            header_frame,
-            text="Order Management",
-            font=("Verdana", 18, "bold"),
-            background="black",
-            foreground="white"
-        ).pack(side="left")
+        # Create canvas and scrollbar
+        self.canvas = tk.Canvas(cards_frame, bg="black", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(cards_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg="black")
 
-        # Orders Table Frame
-        table_frame = tk.Frame(right_container, bg="white", relief="sunken", bd=2)
-        table_frame.pack(fill="both", expand=True)
-
-        # Create Treeview (table)
-        columns = ("order_id", "customer", "items", "status", "action")
-        self.orders_tree = ttk.Treeview(
-            table_frame,
-            columns=columns,
-            show="headings",
-            height=15
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         )
 
-        # Define headings
-        self.orders_tree.heading("order_id", text="Order #")
-        self.orders_tree.heading("customer", text="Client Name")
-        self.orders_tree.heading("items", text="Order Request")
-        self.orders_tree.heading("status", text="Status")
-        self.orders_tree.heading("action", text="Action")
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=scrollbar.set)
 
-        # Define column widths
-        self.orders_tree.column("order_id", width=80, anchor="center")
-        self.orders_tree.column("customer", width=120, anchor="center")
-        self.orders_tree.column("items", width=200, anchor="w")
-        self.orders_tree.column("status", width=120, anchor="center")
-        self.orders_tree.column("action", width=200, anchor="center")
-
-        # Add scrollbar
-        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.orders_tree.yview)
-        self.orders_tree.configure(yscrollcommand=scrollbar.set)
-
-        self.orders_tree.pack(side="left", fill="both", expand=True)
+        self.canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # Bind click event for action column
-        self.orders_tree.bind("<ButtonRelease-1>", self.on_table_click)
-
         # Load initial data
-        self.load_orders_table()
+        self.load_order_cards()
 
-    def load_orders_table(self):
-        """Load all orders into the table"""
+    def load_order_cards(self):
+        """Load all orders as cards"""
         try:
-            # Clear existing items
-            for item in self.orders_tree.get_children():
-                self.orders_tree.delete(item)
+            # Clear existing cards
+            for widget in self.scrollable_frame.winfo_children():
+                widget.destroy()
 
-            # Get all orders with order_status
-            self.storage.data_access.execute("SELECT * FROM Orders ORDER BY order_id;")
-            orders = []
-            for row in self.storage.data_access:
-                orders.append({
-                    'order_id': row[0],
-                    'customer_name': row[1],
-                    'order_status': row[2]
-                })
+            # Get all orders
+            orders = self.storage.get_all_orders()
 
             if not orders:
                 # Display no orders message
-                self.orders_tree.insert("", "end", values=("No orders", "", "", "", ""))
+                no_orders_label = tk.Label(
+                    self.scrollable_frame,
+                    text="No orders available",
+                    font=("Verdana", 16),
+                    bg="black",
+                    fg="black"
+                )
+                no_orders_label.pack(expand=True, pady=50)
                 return
 
-            for order in orders:
-                order_id = order['order_id']
-                customer_name = order['customer_name']
-                order_status = order.get('order_status', 0)
+            # Create cards in rows of 4
+            row_frame = None
+            for i, order in enumerate(orders):
+                if i % 4 == 0:
+                    row_frame = tk.Frame(self.scrollable_frame, bg="black")
+                    row_frame.pack(fill="x", pady=10)
 
-                # Get order items
-                order_items = self.get_order_items(order_id)
-                items_text = self.format_items_text(order_items)
-
-                # Get status text
-                status_text = self.get_status_text(order_status)
-
-                # Get action text based on status
-                action_text, action_state = self.get_action_details(order_id, order_status, order_items)
-
-                # Insert into table
-                self.orders_tree.insert(
-                    "",
-                    "end",
-                    values=(
-                        order_id,
-                        customer_name,
-                        items_text,
-                        status_text,
-                        action_text
-                    ),
-                    tags=(f"status_{order_status}", action_state)
-                )
-
-            # Configure tag colors
-            self.orders_tree.tag_configure("status_0", background="light yellow")
-            self.orders_tree.tag_configure("status_1", background="light coral")
-            self.orders_tree.tag_configure("status_2", background="light green")
-            self.orders_tree.tag_configure("status_3", background="light coral")
-            self.orders_tree.tag_configure("disabled", foreground="gray")
+                self.create_order_card(row_frame, order)
 
         except Exception as e:
-            print(f"Error loading orders table: {e}")
+            print(f"Error loading order cards: {e}")
             messagebox.showerror("Error", f"Failed to load orders: {str(e)}")
 
-    def get_order_items(self, order_id):
-        """Get all items (ingredients and potions) for an order"""
+    def create_order_card(self, parent, order):
+        """Create a single order card"""
+        # Card frame
+        card_frame = tk.Frame(parent, bg="white", relief="raised", bd=2, width=250, height=250)
+        card_frame.pack(side="left", fill="both", expand=True, padx=10)
+        card_frame.pack_propagate(False)  # Prevent frame from shrinking
+
+        # Set background color based on status
+        status_colors = {
+            0: "light yellow",  # Requested
+            1: "sky blue",  # Ongoing
+            2: "light green",  # Completed
+            3: "red4"  # Cannot Complete
+        }
+        card_frame.config(bg=status_colors.get(order['order_status'], "white"))
+
+        # Order ID
+        order_id_label = tk.Label(
+            card_frame,
+            text=f"Order #{order['order_id']}",
+            font=("Verdana", 12, "bold"),
+            bg=status_colors.get(order['order_status'], "white"),
+            fg="black"
+        )
+        order_id_label.pack(anchor="w", padx=10, pady=(10, 5))
+
+        # Customer Name
+        customer_label = tk.Label(
+            card_frame,
+            text=f"{order['customer_name']}",
+            font=("Verdana", 10, "bold"),
+            bg=status_colors.get(order['order_status'], "white"),
+            fg="black"
+        )
+        customer_label.pack(anchor="w", padx=10, pady=2)
+
+        # Status
+        status_text = self.get_status_text(order['order_status'])
+        status_label = tk.Label(
+            card_frame,
+            text=f"Status: {status_text}",
+            font=("Verdana", 10, "bold"),
+            bg=status_colors.get(order['order_status'], "white"),
+            fg="black"
+        )
+        status_label.pack(anchor="w", padx=10, pady=2)
+
+        # Order Items
+        items_frame = tk.Frame(card_frame, bg=status_colors.get(order['order_status'], "white"))
+        items_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        # Get order items using the new model methods
+        order_items = self.get_order_items_detailed(order['order_id'])
+
+        if order_items:
+            items_text = "\n".join(order_items)
+        else:
+            items_text = "No items"
+
+        items_label = tk.Label(
+            items_frame,
+            text=items_text,
+            font=("Verdana", 8),
+            bg=status_colors.get(order['order_status'], "white"),
+            justify="left",
+            wraplength=250,
+            fg="black"
+        )
+        items_label.pack(anchor="w")
+
+        # Missing ingredients (for status 3)
+        if order['order_status'] == 3:
+            missing_ingredients = self.get_missing_ingredients(order['order_id'])
+            if missing_ingredients:
+                missing_text = f"Missing: {', '.join(missing_ingredients)}"
+
+                missing_label = tk.Label(
+                    items_frame,
+                    text=missing_text,
+                    font=("Verdana", 7, "italic"),
+                    bg=status_colors.get(order['order_status'], "white"),
+                    fg="white",  # White text for missing ingredients
+                    justify="left",
+                    wraplength=250
+                )
+                missing_label.pack(anchor="w", pady=(5, 0))
+
+        # Action Button
+        button_frame = tk.Frame(card_frame, bg=status_colors.get(order['order_status'], "white"))
+        button_frame.pack(fill="x", padx=10, pady=10)
+
+        action_button = self.create_action_button(button_frame, order)
+        action_button.pack(fill="x")
+
+    def get_order_items_detailed(self, order_id):
+        """Get detailed order items using model methods with quantities"""
         items = []
 
-        # Get ingredients
+        # Get ingredients (Apothecary orders)
         try:
-            self.storage.data_access.execute("""
-                                             SELECT a.ingredient_name, oi.quantity
-                                             FROM Order_Ingredients oi
-                                                      JOIN Apothecary a ON oi.ingredient_id = a.ingredient_id
-                                             WHERE oi.order_id = ?
-                                             """, (order_id,))
-            ingredients = self.storage.data_access.fetchall()
-            for ing in ingredients:
-                items.append(f"{ing[1]}x {ing[0]}")
+            ingredients = self.storage.get_order_ingredients(order_id)
+            for ingredient in ingredients:
+                qty = getattr(ingredient, 'order_quantity', 1)
+                item_text = f"{qty}x {ingredient.name}"
+                items.append(item_text)
         except Exception as e:
-            print(f"Error fetching ingredients for order {order_id}: {e}")
+            print(f"Error getting order ingredients for order {order_id}: {e}")
 
-        # Get potions
+        items.append("\n")
+
+        # Get potions (Brewery orders)
         try:
-            self.storage.data_access.execute("""
-                                             SELECT p.potion_name, op.quantity
-                                             FROM Order_Potions op
-                                                      JOIN Potions p ON op.potion_id = p.potion_id
-                                             WHERE op.order_id = ?
-                                             """, (order_id,))
-            potions = self.storage.data_access.fetchall()
-            for pot in potions:
-                items.append(f"{pot[1]}x {pot[0]}")
+            potions = self.storage.get_order_potions(order_id)
+            for potion in potions:
+                qty = getattr(potion, 'order_quantity', 1)
+                item_text = f"{qty}x {potion.name}"
+                items.append(item_text)
         except Exception as e:
-            print(f"Error fetching potions for order {order_id}: {e}")
+            print(f"Error getting order potions for order {order_id}: {e}")
 
         return items
-
-    def format_items_text(self, items):
-        """Format items text for display in table"""
-        if not items:
-            return "No items"
-
-        # Show first 2-3 items, then "and X more"
-        if len(items) <= 3:
-            return ", ".join(items)
-        else:
-            return ", ".join(items[:2]) + f" and {len(items) - 2} more"
 
     def get_status_text(self, order_status):
         """Get human-readable status text"""
@@ -1084,102 +1123,104 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         }
         return status_map.get(order_status, "Unknown")
 
-    def get_action_details(self, order_id, order_status, order_items):
-        """Get action text and state based on order status"""
-        if order_status == 0:  # Requested
-            return "ACCEPT ORDER AND COMPLETE", "enabled"
-
-        elif order_status == 1:  # Ongoing
-            # Check if we can complete
-            can_complete = self.check_order_feasibility(order_id)
-            if can_complete:
-                return "COMPLETE ORDER", "enabled"
-            else:
-                # Find which ingredients are insufficient
-                missing_items = self.get_missing_ingredients(order_id)
-                if missing_items:
-                    return f"ORDER MORE {missing_items[0]} TO COMPLETE", "disabled"
-                else:
-                    return "INSUFFICIENT INGREDIENTS", "disabled"
-
-        elif order_status == 2:  # Completed
-            return "NO ACTION REQUIRED", "disabled"
-
-        elif order_status == 3:  # Cannot Complete
-            missing_items = self.get_missing_ingredients(order_id)
-            if missing_items:
-                return f"ORDER MORE {missing_items[0]} TO COMPLETE", "disabled"
-            else:
-                return "INSUFFICIENT INGREDIENTS", "disabled"
-
-        return "UNKNOWN STATUS", "disabled"
-
     def get_missing_ingredients(self, order_id):
-        """Get list of ingredients that are insufficient for this order"""
+        """Get list of missing ingredients for an order with quantities needed"""
         missing = []
         try:
-            # Get all potions in the order
-            self.storage.data_access.execute("""
-                                             SELECT p.potion_id, op.quantity
-                                             FROM Order_Potions op
-                                                      JOIN Potions p ON op.potion_id = p.potion_id
-                                             WHERE op.order_id = ?
-                                             """, (order_id,))
-            potions = self.storage.data_access.fetchall()
-
-            for potion_id, quantity in potions:
-                # Get ingredients needed for this potion
-                ingredients = self.storage.get_potion_ingredients(potion_id)
+            # Check potion ingredients
+            potions = self.storage.get_order_potions(order_id)
+            for potion in potions:
+                ingredients = self.storage.get_potion_ingredients(potion.potion_id)
                 for ingredient in ingredients:
-                    required_qty = getattr(ingredient, 'quantity_in_recipe', 1) * quantity
+                    required_qty = getattr(ingredient, 'quantity_in_recipe', 1) * getattr(potion, 'order_quantity', 1)
                     if ingredient.quantity < required_qty:
-                        missing.append(ingredient.name)
+                        missing.append(f"{ingredient.name} (need {required_qty})")
+
+            # Check direct ingredient orders
+            ingredients = self.storage.get_order_ingredients(order_id)
+            for ingredient in ingredients:
+                order_qty = getattr(ingredient, 'order_quantity', 1)
+                if ingredient.quantity < order_qty:
+                    missing.append(f"{ingredient.name} (need {order_qty})")
 
         except Exception as e:
             print(f"Error getting missing ingredients: {e}")
 
         return missing
 
-    def on_table_click(self, event):
-        """Handle clicks on the table, specifically action column"""
-        item = self.orders_tree.identify_row(event.y)
-        column = self.orders_tree.identify_column(event.x)
+    def create_action_button(self, parent, order):
+        """Create appropriate action button based on order status"""
+        order_id = order['order_id']
+        status = order['order_status']
 
-        if item and column == "#5":  # Action column
-            values = self.orders_tree.item(item, "values")
-            order_id = int(values[0])
-            order_status = self.get_order_status_from_text(values[3])
-            action_text = values[4]
+        if status == 0:  # Requested
+            button = ttk.Button(
+                parent,
+                text="ACCEPT ORDER",
+                command=lambda: self.process_order(order_id)
+            )
+            return button
 
-            # Only process if action is enabled
-            tags = self.orders_tree.item(item, "tags")
-            if "disabled" not in tags:
-                self.handle_order_action(order_id, order_status, action_text)
+        elif status == 1:  # Ongoing
+            # Check if we can complete
+            can_complete = self.check_order_feasibility(order_id)
+            if can_complete:
+                button = ttk.Button(
+                    parent,
+                    text="COMPLETE ORDER",
+                    command=lambda: self.complete_order(order_id)
+                )
+                return button
+            else:
+                button = ttk.Button(
+                    parent,
+                    text="INSUFFICIENT INGREDIENTS",
+                    state="disabled"
+                )
+                return button
 
-    def get_order_status_from_text(self, status_text):
-        """Convert status text back to status code"""
-        status_map = {
-            "Requested": 0,
-            "Ongoing": 1,
-            "Completed": 2,
-            "Cannot Complete": 3
-        }
-        return status_map.get(status_text, 0)
+        elif status == 2:  # Completed
+            button = ttk.Button(
+                parent,
+                text="NO ACTION REQUIRED",
+                state="disabled"
+            )
+            return button
 
-    def handle_order_action(self, order_id, order_status, action_text):
-        """Handle order actions based on current status"""
-        if order_status == 0:  # Requested -> Process to Ongoing
-            self.process_order(order_id)
+        elif status == 3:  # Cannot Complete
+            missing_ingredients = self.get_missing_ingredients(order_id)
+            if missing_ingredients:
+                button_text = f"ORDER MORE {missing_ingredients[0]}"
+                if len(missing_ingredients) > 1:
+                    button_text += "..."
+            else:
+                button_text = "INSUFFICIENT INGREDIENTS"
 
-        elif order_status == 1:  # Ongoing -> Complete
-            if "COMPLETE" in action_text:
-                self.complete_order(order_id)
+            button = ttk.Button(
+                parent,
+                text=button_text,
+                state="disabled"
+            )
+            return button
+
+        # Default fallback
+        return ttk.Button(parent, text="UNKNOWN STATUS", state="disabled")
 
     def process_order(self, order_id):
         """Process a requested order (move from status 0 to 1 or 3)"""
         try:
-            # Check if we have sufficient ingredients
+            # Check if we have sufficient ingredients for ALL items in the order
             can_complete = self.check_order_feasibility(order_id)
+
+            # Also check if there are any ingredients directly in the order
+            if can_complete:
+                # Check direct ingredient orders too
+                ingredients = self.storage.get_order_ingredients(order_id)
+                for ingredient in ingredients:
+                    order_qty = getattr(ingredient, 'order_quantity', 1)
+                    if ingredient.quantity < order_qty:
+                        can_complete = False
+                        break
 
             # Update order status
             new_status = 1 if can_complete else 3  # Ongoing or Cannot Complete
@@ -1189,7 +1230,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
             )
             self.storage.conn.commit()
 
-            # If we can complete, update ingredient quantities
+            # If we can complete, update ingredient quantities for both potions and direct ingredients
             if can_complete:
                 self.update_ingredient_quantities(order_id)
 
@@ -1197,8 +1238,8 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
             status_msg = "Order processed successfully!" if can_complete else "Order processed but cannot be completed due to insufficient ingredients"
             messagebox.showinfo("Order Processed", status_msg)
 
-            # Reload table
-            self.load_orders_table()
+            # Reload cards
+            self.load_order_cards()
 
         except Exception as e:
             print(f"Error processing order {order_id}: {e}")
@@ -1216,8 +1257,8 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
 
             messagebox.showinfo("Order Completed", f"Order #{order_id} has been completed!")
 
-            # Reload table
-            self.load_orders_table()
+            # Reload cards
+            self.load_order_cards()
 
         except Exception as e:
             print(f"Error completing order {order_id}: {e}")
@@ -1226,24 +1267,23 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
     def check_order_feasibility(self, order_id):
         """Check if an order can be completed based on available ingredients"""
         try:
-            # Get all potions in the order
-            self.storage.data_access.execute("""
-                                             SELECT p.potion_id, op.quantity
-                                             FROM Order_Potions op
-                                                      JOIN Potions p ON op.potion_id = p.potion_id
-                                             WHERE op.order_id = ?
-                                             """, (order_id,))
-            potions = self.storage.data_access.fetchall()
-
-            for potion_id, quantity in potions:
-                # Get ingredients needed for this potion
-                ingredients = self.storage.get_potion_ingredients(potion_id)
+            # Check potions in the order
+            potions = self.storage.get_order_potions(order_id)
+            for potion in potions:
+                ingredients = self.storage.get_potion_ingredients(potion.potion_id)
                 for ingredient in ingredients:
-                    required_qty = getattr(ingredient, 'quantity_in_recipe', 1) * quantity
+                    required_qty = getattr(ingredient, 'quantity_in_recipe', 1) * getattr(potion, 'order_quantity', 1)
                     if ingredient.quantity < required_qty:
-                        return False  # Insufficient ingredients
+                        return False
 
-            return True  # All ingredients are sufficient
+            # Check direct ingredients in the order
+            ingredients = self.storage.get_order_ingredients(order_id)
+            for ingredient in ingredients:
+                order_qty = getattr(ingredient, 'order_quantity', 1)
+                if ingredient.quantity < order_qty:
+                    return False
+
+            return True
 
         except Exception as e:
             print(f"Error checking order feasibility: {e}")
@@ -1252,21 +1292,12 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
     def update_ingredient_quantities(self, order_id):
         """Update ingredient quantities when an order is processed"""
         try:
-            # Get all potions in the order
-            self.storage.data_access.execute("""
-                                             SELECT p.potion_id, op.quantity
-                                             FROM Order_Potions op
-                                                      JOIN Potions p ON op.potion_id = p.potion_id
-                                             WHERE op.order_id = ?
-                                             """, (order_id,))
-            potions = self.storage.data_access.fetchall()
-
-            for potion_id, quantity in potions:
-                # Get ingredients needed for this potion
-                ingredients = self.storage.get_potion_ingredients(potion_id)
+            # Update quantities for potion ingredients
+            potions = self.storage.get_order_potions(order_id)
+            for potion in potions:
+                ingredients = self.storage.get_potion_ingredients(potion.potion_id)
                 for ingredient in ingredients:
-                    required_qty = getattr(ingredient, 'quantity_in_recipe', 1) * quantity
-                    # Update the ingredient quantity
+                    required_qty = getattr(ingredient, 'quantity_in_recipe', 1) * getattr(potion, 'order_quantity', 1)
                     new_qty = ingredient.quantity - required_qty
                     if new_qty < 0:
                         new_qty = 0
@@ -1276,16 +1307,24 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
                         (new_qty, ingredient.ingredient_id)
                     )
 
+            # Update quantities for direct ingredient orders
+            ingredients = self.storage.get_order_ingredients(order_id)
+            for ingredient in ingredients:
+                order_qty = getattr(ingredient, 'order_quantity', 1)
+                new_qty = ingredient.quantity - order_qty
+                if new_qty < 0:
+                    new_qty = 0
+
+                self.storage.data_access.execute(
+                    "UPDATE Apothecary SET ingredient_qoh = ? WHERE ingredient_id = ?",
+                    (new_qty, ingredient.ingredient_id)
+                )
+
             self.storage.conn.commit()
 
         except Exception as e:
             print(f"Error updating ingredient quantities: {e}")
             self.storage.conn.rollback()
-
-    def refresh_orders(self):
-        """Refresh the orders display"""
-        self.load_orders_table()
-        messagebox.showinfo("Refreshed", "Orders have been refreshed!")
 
 if __name__ == '__main__':
     root = tk.Tk()

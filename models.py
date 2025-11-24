@@ -1,5 +1,6 @@
 import sqlite3
 
+
 class SQLStorage():
     ''' Represents a persistence layer for the Potion Shop using SQLite'''
     FILENAME = "apothecary_inventory.db"
@@ -120,6 +121,47 @@ class SQLStorage():
                 'order_status': row[2]
             })
         return orders
+
+    def get_order_ingredients(self, order_id):
+        ''' return all ingredients for a specific order '''
+        self.data_access.execute("""
+                                 SELECT a.ingredient_id,
+                                        a.ingredient_name,
+                                        a.ingredient_price,
+                                        a.ingredient_qoh,
+                                        oi.quantity as order_quantity
+                                 FROM Order_Ingredients oi
+                                          JOIN Apothecary a ON oi.ingredient_id = a.ingredient_id
+                                 WHERE oi.order_id = ?;
+                                 """, (order_id,))
+
+        rows = self.data_access.fetchall()
+        ingredients = []
+        for row in rows:
+            ingredient = Ingredient(row[1], row[2], row[3], row[0])
+            ingredient.order_quantity = row[4]  # quantity ordered
+            ingredients.append(ingredient)
+        return ingredients
+
+    def get_order_potions(self, order_id):
+        ''' return all potions for a specific order '''
+        self.data_access.execute("""
+                                 SELECT p.potion_id,
+                                        p.potion_name,
+                                        p.effect_description,
+                                        op.quantity as order_quantity
+                                 FROM Order_Potions op
+                                          JOIN Potions p ON op.potion_id = p.potion_id
+                                 WHERE op.order_id = ?;
+                                 """, (order_id,))
+
+        rows = self.data_access.fetchall()
+        potions = []
+        for row in rows:
+            potion = Potion(row[1], row[2], row[0])
+            potion.order_quantity = row[3]  # quantity ordered
+            potions.append(potion)
+        return potions
 
     def fetch_total_orders_by_item_type(self):
         """Will fetch the total ordered quantity per item from the Orders table"""
