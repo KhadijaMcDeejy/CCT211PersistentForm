@@ -108,7 +108,7 @@ class CalcifersLedgerApp:
             frame = Page(parent=container, controller=self)
             self.frames[Page] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-        self.show_frame(LoginPage)
+        self.show_frame(RequestScrollsPage)
 
     def show_frame(self, page_class):
         frame = self.frames[page_class]
@@ -867,14 +867,14 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         left_container.pack(side="left", fill="y", padx=(0, 20))
 
         # Status Legend Frame
-        legend_frame = tk.Frame(left_container, bg="white", relief="raised", bd=2)
+        legend_frame = tk.Frame(left_container, bg="thistle3", relief="raised", bd=2)
         legend_frame.pack(fill="y", pady=(10,10), expand=True)
 
         ttk.Label(
             legend_frame,
             text="Order Status Legend",
             font=("Verdana", 14, "bold"),
-            background="white"
+            background="thistle3"
         ).pack(pady=10)
 
         # Status items
@@ -885,7 +885,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         ]
 
         for status, description, color in status_items:
-            status_frame = tk.Frame(legend_frame, bg="white")
+            status_frame = tk.Frame(legend_frame, bg="thistle3")
             status_frame.pack(fill="x", padx=10, pady=5)
 
             # Color indicator
@@ -893,21 +893,21 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
             color_label.pack(side="left", padx=(0, 10))
 
             # Status text
-            text_frame = tk.Frame(status_frame, bg="white")
+            text_frame = tk.Frame(status_frame, bg="thistle3")
             text_frame.pack(side="left", fill="x", expand=True)
 
             ttk.Label(
                 text_frame,
                 text=status,
                 font=("Verdana", 10, "bold"),
-                background="white"
+                background="thistle3"
             ).pack(anchor="w")
 
             ttk.Label(
                 text_frame,
                 text=description,
                 font=("Verdana", 8),
-                background="white"
+                background="thistle3"
             ).pack(anchor="w")
 
         # Add Refresh Button to Legend Frame
