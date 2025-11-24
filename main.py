@@ -86,6 +86,7 @@ class CalcifersLedgerApp:
         self.root.title("Calcifer's Ledger - Magic Record Keeping System")
         self.root.geometry("1400x600")
 
+        #Usernames and Passwords
         self.valid_logins = {
             "howl": "fire123",
             "sophie": "howlcastle",
@@ -108,7 +109,7 @@ class CalcifersLedgerApp:
             frame = Page(parent=container, controller=self)
             self.frames[Page] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-        self.show_frame(RequestScrollsPage)
+        self.show_frame(LoginPage)
 
     def show_frame(self, page_class):
         frame = self.frames[page_class]
