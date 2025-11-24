@@ -1,5 +1,5 @@
 #CCT211 Assignment 2--Persistent Form
-#Comments:
+#Comments: The Login image was a image sourced from Google; otherwise, all other visual assets were directly created by our group
 
 from cProfile import label
 import tkinter as tk
@@ -84,7 +84,7 @@ class CalcifersLedgerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Calcifer's Ledger - Magic Record Keeping System")
-        self.root.geometry("1400x600")
+        self.root.geometry("1400x950")
 
         #Usernames and Passwords
         self.valid_logins = {
@@ -123,10 +123,35 @@ class CalcifersLedgerApp:
 # Windows in Application
 class LoginPage(tk.Frame):
      def __init__(self, parent, controller):
-        super().__init__(parent, bg = "white")
+        super().__init__(parent, bg = "")
         self.controller = controller
 
-        center_frame = tk.Frame(self, bg = "white")
+        #LOGIN frame: Background Image
+        bg_path = "Assets/loginBackground.jpg"
+        original_bg = Image.open(bg_path)
+
+        window_w, window_h = 1400, 600
+        img_w, img_h = original_bg.size
+
+        scale = max(window_w / img_w, window_h / img_h)
+        new_w = int(img_w * scale)
+        new_h = int(img_h * scale)
+
+        resized_bg = original_bg.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+        self.login_bg_img = ImageTk.PhotoImage(resized_bg)
+
+        self.bg_label = tk.Label(self, image=self.login_bg_img)
+        self.bg_label.place(
+            relx=0.5,
+            rely=0.5,
+            anchor="center",
+            width=new_w,
+            height=new_h
+        )
+        self.bg_label.lower()   #keeps the background image behind all other widgets
+
+        center_frame = tk.Frame(self.bg_label, bg = "")
         center_frame.place(relx = 0.5, rely = 0.5, anchor = "center")
 
         #LOGIN TITLE
@@ -146,11 +171,11 @@ class LoginPage(tk.Frame):
         ).pack(pady=(0, 8))
 
         #FORM area (centered within center_frame)
-        form_frame = tk.Frame(center_frame, bg = "white")
+        form_frame = tk.Frame(center_frame, bg = "")
         form_frame.pack()
 
         #LOGIN ROW
-        login_row = tk.Frame(form_frame, bg = "white") #the login form row
+        login_row = tk.Frame(form_frame, bg = "") #the login form row
         login_row.pack(anchor = "center", pady = 6)
         ttk.Label(login_row, text = "Login:", font = ("Verdana", 12)).pack(side = "left", padx = (0, 8))
         #LOGIN ENTRY
@@ -158,7 +183,7 @@ class LoginPage(tk.Frame):
         self.login_entry.pack(side = "left")
 
         #PASSWORD ROW
-        pass_row = tk.Frame(form_frame, bg = "white") #the password form row
+        pass_row = tk.Frame(form_frame, bg = "") #the password form row
         pass_row.pack(anchor = "center", pady = 6)
         ttk.Label(pass_row, text = "Password:", font = ("Verdana", 12)).pack(side = "left", padx = (0, 8))
         #PASS ENTRY
@@ -283,8 +308,14 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
         try:
             order_data = storage.fetch_total_orders_by_item_type()
             if order_data:
-                items = [row['item_name'] for row in order_data]
-                counts = [int(row['total_ordered'] or 0) for row in order_data]
+                
+                order_list = [(row["item_name"], int(row["total_ordered"])) for row in order_data] #Converts the data in rows to (name, total) tuples
+
+                order_list.sort(key=lambda x: x[1], reverse=True) #sorts order_list by descending popularity
+
+                order_list = order_list[:10] #keeps the top ten most popular orders
+                items = [name for name, total in order_list]
+                counts = [total for name, total in order_list]
             else:
                 items = ["No data"]
                 counts = [0]
@@ -333,7 +364,7 @@ class PotionPantryPage(tk.Frame):
         super().__init__(parent, bg="black")
         self.controller = controller
         self.nav_frame = NavigationBar(self, controller)
-        self.nav_frame.configure(bg = "black")
+        #self.nav_frame.configure(bg = "black")
         self.nav_frame.pack(fill="x", pady=5)
 
         # Application models SQLStorage
@@ -854,7 +885,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         # Initialize the NAVIGATION BAR
         self.nav_frame = NavigationBar(self, controller)
         self.nav_frame.pack(fill="x", pady=5)
-        self.nav_frame.config(bg="black")
+        #self.nav_frame.config(bg="black")
 
         # Create a storage instance
         self.storage = controller.model
@@ -1390,9 +1421,3 @@ if __name__ == '__main__':
     configure_style(root)
     app = CalcifersLedgerApp(root)
     root.mainloop()
-
-
-
-
-
-
