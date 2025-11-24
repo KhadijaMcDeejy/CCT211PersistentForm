@@ -83,7 +83,7 @@ class NavigationBar(tk.Frame):
 class CalcifersLedgerApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Calcifer’s Ledger - Magic Record Keeping System")
+        self.root.title("Calcifer's Ledger - Magic Record Keeping System")
         self.root.geometry("1400x600")
 
         self.valid_logins = {
@@ -92,24 +92,24 @@ class CalcifersLedgerApp:
             "calcifer": "flame!"
         }
 
-        self.username = None #intializes the username of whom has logged into the application
-        self.model = models.SQLStorage()
+        self.username = None
+        self.model = models.SQLStorage()  # Single storage instance for entire app
 
-        container = tk.Frame(self.root, bg = "white")
-        container.pack(fill = "both", expand = True)
+        container = tk.Frame(self.root, bg="white")
+        container.pack(fill="both", expand=True)
 
-        container.grid_rowconfigure(0, weight = 1)
-        container.grid_columnconfigure(0, weight = 1)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
 
-        # INITIALIZES all of our pages
+        # Pass the shared storage to all pages
         for Page in (LoginPage, OverviewPage, PotionPantryPage, RequestScrollsPage):
-            frame = Page(parent = container, controller = self)
+            frame = Page(parent=container, controller=self)
             self.frames[Page] = frame
-            frame.grid(row = 0, column = 0, sticky = "nsew")
-        self.show_frame(RequestScrollsPage) #SHOWS THE LOGIN PAGE FRAME
+            frame.grid(row=0, column=0, sticky="nsew")
 
+        self.show_frame(LoginPage)
     def show_frame(self, page_class):
         frame = self.frames[page_class]
         frame.tkraise()
@@ -227,8 +227,8 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
         ).pack(side = "bottom", pady = 8)
 
         #fetching popular orders for the right side content area (specifically for the body_text section):
-        storage = SQLStorage()
-        order_data = storage.fetch_total_orders_by_item_type()
+        self.storage = controller.model
+        order_data = self.storage.fetch_total_orders_by_item_type()
         if order_data:
             order_list = [(row["item_name"], int(row["total_ordered"])) for row in order_data] #converts the sqlite3 row into dict for access
 
@@ -241,8 +241,6 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
             top_3 = [("No data", 0), ("No data", 0), ("No data", 0)]
             least = ("No data", 0)
 
-        storage.close()
-
         #Overview: Content Area- Right Side (Text regarding past popular orders)
         text_container = tk.Frame(content_frame, bg = "white", bd = 2, relief = "solid")
         text_container.grid(row = 0, column = 1, sticky="nsew")
@@ -254,8 +252,8 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
         ).pack(anchor = "nw", padx = 20, pady = (20, 10))
         body_text = ( #Variable for body text (body_text)
             "Welcome to Calcifer's Ledger, your enchanted inventory and order management system. "
-            "This magical ledger organizes the apothecary’s stock and tracks incoming orders, "
-            "ensuring the castle’s operations run smoothly and efficiently.\n\n"
+            "This magical ledger organizes the apothecary's stock and tracks incoming orders, "
+            "ensuring the castle's operations run smoothly and efficiently.\n\n"
             "The chart on the left displays trends in past orders, highlighting the most requested items. "
             "By visualizing these patterns, castle staff can anticipate demand, optimize inventory, "
             "and maintain appropriate stock levels for upcoming requests.\n\n"
@@ -277,62 +275,59 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
 
     #Overview: chart functions
     def create_popular_orders_chart(self, container):
-            matplotlib.use("Agg")
-            storage = SQLStorage() #calls the SQLStorage class in the init_db.py file
+        matplotlib.use("Agg")
+        # Use the shared storage instead of creating a new one
+        storage = self.controller.model
 
-            try:
-                order_data = storage.fetch_total_orders_by_item_type() #calls fetch_total_orders_by_item_type and retrieves the values of item_name and total_ordered from the database
-                #print([dict(row) for row in order_data]) #test print statement to show values of previous orders
-
-                if order_data:
-                    items = [row['item_name'] for row in order_data]
-                    counts = [int(row['total_ordered'] or 0) for row in order_data]
-                else:
-                    items = ["No data"]
-                    counts = [0]
-            except Exception as e: #Error exception statement
-                print("Chart DB Error:", e)
+        try:
+            order_data = storage.fetch_total_orders_by_item_type()
+            if order_data:
+                items = [row['item_name'] for row in order_data]
+                counts = [int(row['total_ordered'] or 0) for row in order_data]
+            else:
                 items = ["No data"]
                 counts = [0]
+        except Exception as e:
+            print("Chart DB Error:", e)
+            items = ["No data"]
+            counts = [0]
 
-            #plots the bar chart!
-            fig = Figure(figsize=(8, 4), dpi = 100) #size of chart
-            ax = fig.add_subplot(111)
-            #draws each bar
-            bars = ax.bar(items, counts, color = 'skyblue') #initializes each bar values and colour
+        # MOVE THIS CODE OUTSIDE THE TRY-EXCEPT BLOCK
+        # plots the bar chart!
+        fig = Figure(figsize=(8, 4), dpi=100)  # size of chart
+        ax = fig.add_subplot(111)
+        # draws each bar
+        bars = ax.bar(items, counts, color='skyblue')  # initializes each bar values and colour
 
-            #Chart titles
-            ax.set_title("Popular Past Orders")
-            ax.set_xlabel("Item Name")
-            ax.set_ylabel("Total Orders")
-            #Chart subtitles: Item Names
-            ax.set_xticks(range(len(items)))  #sets the tick positions
-            ax.set_xticklabels(items, rotation = 45, ha="right", fontsize = 6)
+        # Chart titles
+        ax.set_title("Popular Past Orders")
+        ax.set_xlabel("Item Name")
+        ax.set_ylabel("Total Orders")
+        # Chart subtitles: Item Names
+        ax.set_xticks(range(len(items)))  # sets the tick positions
+        ax.set_xticklabels(items, rotation=45, ha="right", fontsize=6)
 
-            fig.subplots_adjust(bottom=0.3) #gives space for the tick labels on the x axis
+        fig.subplots_adjust(bottom=0.3)  # gives space for the tick labels on the x axis
 
-            #Quantity labels for each bar (displays an exact value for the user)
-            for bar, count in zip(bars, counts):
-                height = bar.get_height()
-                ax.text(
-                    bar.get_x() + bar.get_width() / 2,  #centers the text horizontally ontop of the bar
-                    height / 2, #places the text (quantity) in the middle of the bar for visual clarity
-                    str(count), #count is the value of quantity
-                    ha="center",
-                    va="bottom",
-                    fontsize=7,
-                    color="white"
-                )
+        # Quantity labels for each bar (displays an exact value for the user)
+        for bar, count in zip(bars, counts):
+            height = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,  # centers the text horizontally ontop of the bar
+                height / 2,  # places the text (quantity) in the middle of the bar for visual clarity
+                str(count),  # count is the value of quantity
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                color="white"
+            )
 
-            #embeds the chart in Tkinter window
-            canvas = FigureCanvasTkAgg(fig, master = container)
-            canvas.draw() #draws the canvas
-            canvas.get_tk_widget().pack(fill = "both", expand = True, padx = 10, pady = 10) #packs the canvas widget onto the window
-
-            storage.close()
-
-        #label1 = ttk.Label(self, text = "OverviewPage test").pack() #TESTING
-
+        # embeds the chart in Tkinter window
+        canvas = FigureCanvasTkAgg(fig, master=container)
+        canvas.draw()  # draws the canvas
+        canvas.get_tk_widget().pack(fill="both", expand=True, padx=10,
+                                    pady=10)  # packs the canvas widget onto the window
+        
 class PotionPantryPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg="black")
@@ -341,8 +336,8 @@ class PotionPantryPage(tk.Frame):
         self.nav_frame.configure(bg = "black")
         self.nav_frame.pack(fill="x", pady=5)
 
-        # Create a storage instance using the models SQLStorage
-        self.storage = models.SQLStorage()
+        # Application models SQLStorage
+        self.storage = controller.model
         self.current_ingredient = None
         self.current_potion = None
         self.order_mode = False
@@ -874,7 +869,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         self.nav_frame.config(bg="black")
 
         # Create a storage instance
-        self.storage = models.SQLStorage()
+        self.storage = controller.model
 
         # Main container
         main_container = tk.Frame(self, bg="black")
@@ -900,7 +895,6 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
             ("Requested", "New orders waiting to be processed", "light yellow"),
             ("Ongoing", "Orders being prepared", "sky blue"),
             ("Completed", "Successfully fulfilled orders", "light green"),
-            ("Cannot Complete", "Insufficient ingredients", "red4")
         ]
 
         for status, description, color in status_items:
@@ -928,6 +922,14 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
                 font=("Verdana", 8),
                 background="white"
             ).pack(anchor="w")
+
+        # Add Refresh Button to Legend Frame
+        refresh_button = ttk.Button(
+            legend_frame,
+            text="Refresh Orders",
+            command=self.refresh_orders
+        )
+        refresh_button.pack(pady=10, padx=10, fill="x")
 
         # ===== RIGHT COLUMN - Order Cards =====
         right_container = tk.Frame(main_container, bg="black")
@@ -1003,7 +1005,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
             0: "light yellow",  # Requested
             1: "sky blue",  # Ongoing
             2: "light green",  # Completed
-            3: "red4"  # Cannot Complete
+            3: "light yellow"  # Cannot Complete
         }
         card_frame.config(bg=status_colors.get(order['order_status'], "white"))
 
@@ -1042,24 +1044,52 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         items_frame = tk.Frame(card_frame, bg=status_colors.get(order['order_status'], "white"))
         items_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        # Get order items using the new model methods
+        # Get order items and identify insufficient ingredients
         order_items = self.get_order_items_detailed(order['order_id'])
+        insufficient_items = self.get_insufficient_items(order['order_id'])
 
         if order_items:
-            items_text = "\n".join(order_items)
-        else:
-            items_text = "No items"
+            # Create a text widget instead of label for styling individual items
+            items_text = tk.Text(
+                items_frame,
+                wrap="word",
+                width=25,
+                height=6,
+                font=("Verdana", 8),
+                bg=status_colors.get(order['order_status'], "white"),
+                fg="black",
+                relief="flat",
+                bd=0,
+                highlightthickness=0
+            )
+            items_text.pack(anchor="w", fill="both", expand=True)
 
-        items_label = tk.Label(
-            items_frame,
-            text=items_text,
-            font=("Verdana", 8),
-            bg=status_colors.get(order['order_status'], "white"),
-            justify="left",
-            wraplength=250,
-            fg="black"
-        )
-        items_label.pack(anchor="w")
+            # Insert items with styling for insufficient ones
+            items_text.config(state="normal")
+            for item in order_items:
+                if item.strip():  # Skip empty lines
+                    # Check if this item is insufficient
+                    is_insufficient = any(insuff_item in item for insuff_item in insufficient_items)
+
+                    if is_insufficient:
+                        # Configure tag for insufficient items
+                        items_text.tag_configure("insufficient", foreground="red", font=("Verdana", 8, "bold"))
+                        items_text.insert(tk.END, item + "\n", "insufficient")
+                    else:
+                        items_text.insert(tk.END, item + "\n")
+
+            items_text.config(state="disabled")
+        else:
+            items_label = tk.Label(
+                items_frame,
+                text="No items",
+                font=("Verdana", 8),
+                bg=status_colors.get(order['order_status'], "white"),
+                justify="left",
+                wraplength=250,
+                fg="black"
+            )
+            items_label.pack(anchor="w")
 
         # Missing ingredients (for status 3)
         if order['order_status'] == 3:
@@ -1070,9 +1100,9 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
                 missing_label = tk.Label(
                     items_frame,
                     text=missing_text,
-                    font=("Verdana", 7, "italic"),
+                    font=("Verdana", 7, "bold"),
                     bg=status_colors.get(order['order_status'], "white"),
-                    fg="white",  # White text for missing ingredients
+                    fg="red4",
                     justify="left",
                     wraplength=250
                 )
@@ -1191,8 +1221,6 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
             missing_ingredients = self.get_missing_ingredients(order_id)
             if missing_ingredients:
                 button_text = f"ORDER MORE {missing_ingredients[0]}"
-                if len(missing_ingredients) > 1:
-                    button_text += "..."
             else:
                 button_text = "INSUFFICIENT INGREDIENTS"
 
@@ -1325,6 +1353,49 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         except Exception as e:
             print(f"Error updating ingredient quantities: {e}")
             self.storage.conn.rollback()
+
+    def get_insufficient_items(self, order_id):
+        """Get list of item names that are insufficient for this order"""
+        insufficient_items = []
+        try:
+            # Check potion ingredients
+            potions = self.storage.get_order_potions(order_id)
+            for potion in potions:
+                ingredients = self.storage.get_potion_ingredients(potion.potion_id)
+                for ingredient in ingredients:
+                    required_qty = getattr(ingredient, 'quantity_in_recipe', 1) * getattr(potion, 'order_quantity', 1)
+                    if ingredient.quantity < required_qty:
+                        insufficient_items.append(ingredient.name)
+
+            # Check direct ingredient orders
+            ingredients = self.storage.get_order_ingredients(order_id)
+            for ingredient in ingredients:
+                order_qty = getattr(ingredient, 'order_quantity', 1)
+                if ingredient.quantity < order_qty:
+                    insufficient_items.append(ingredient.name)
+
+        except Exception as e:
+            print(f"Error getting insufficient items: {e}")
+
+        return insufficient_items
+
+    def refresh_orders(self):
+        """Safe refresh using shared database connection"""
+        try:
+            # Just reload the cards - the shared storage should have latest data
+            self.load_order_cards()
+            messagebox.showinfo("Success", "Orders refreshed with latest data!")
+        except Exception as e:
+            print(f"Refresh error: {e}")
+            # Try to reconnect if there's a connection issue
+            try:
+                # If the connection was closed, get a new one from controller
+                self.storage = self.controller.model
+                self.load_order_cards()
+                messagebox.showinfo("Success", "Orders refreshed with latest data!")
+            except Exception as e2:
+                print(f"Reconnect also failed: {e2}")
+                messagebox.showerror("Error", "Could not refresh orders. Please try navigating away and back.")
 
 if __name__ == '__main__':
     root = tk.Tk()
