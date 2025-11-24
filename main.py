@@ -17,7 +17,7 @@ init_db.initialize_database()
 #GLOBAL THEME (consistent widget rendering on macOS + Windows)
 def configure_style(root):
     style = ttk.Style(root)
-    style.theme_use("clam")   #uses the "CLAM" style to ensure its consistent across both OS systems; replaces the default Aqua theme on macOS
+    style.theme_use("clam")   # "CLAM" style to ensure its consistent across both OS systems; replaces the default Aqua theme on macOS
 
     #Configures consistent styling across ALL widgets
     style.configure("TEntry", padding = 4)
@@ -108,8 +108,8 @@ class CalcifersLedgerApp:
             frame = Page(parent=container, controller=self)
             self.frames[Page] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-
         self.show_frame(LoginPage)
+
     def show_frame(self, page_class):
         frame = self.frames[page_class]
         frame.tkraise()
@@ -215,7 +215,7 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
         content_frame.grid_columnconfigure(1, weight = 1)  #text column: giving context of the chart!
         content_frame.grid_rowconfigure(0, weight = 1)
 
-        #Overview: Content Area- Left Side (CHART of past popular orders)
+        #Overview: Content Area - Left Side (CHART of past popular orders)
         chart_container = tk.Frame(content_frame, bg = "white", bd = 2, relief = "solid")
         chart_container.grid(row = 0, column = 0, sticky = "nsew", padx = (0, 20))
         self.create_popular_orders_chart(chart_container) #generates the Matplotlib chart
@@ -241,7 +241,7 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
             top_3 = [("No data", 0), ("No data", 0), ("No data", 0)]
             least = ("No data", 0)
 
-        #Overview: Content Area- Right Side (Text regarding past popular orders)
+        #Overview: Content Area - Right Side (Text regarding past popular orders)
         text_container = tk.Frame(content_frame, bg = "white", bd = 2, relief = "solid")
         text_container.grid(row = 0, column = 1, sticky="nsew")
         ttk.Label( #Subheader
@@ -292,12 +292,11 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
             items = ["No data"]
             counts = [0]
 
-        # MOVE THIS CODE OUTSIDE THE TRY-EXCEPT BLOCK
         # plots the bar chart!
         fig = Figure(figsize=(8, 4), dpi=100)  # size of chart
         ax = fig.add_subplot(111)
         # draws each bar
-        bars = ax.bar(items, counts, color='skyblue')  # initializes each bar values and colour
+        bars = ax.bar(items, counts, color='skyblue')
 
         # Chart titles
         ax.set_title("Popular Past Orders")
@@ -327,7 +326,7 @@ class OverviewPage(tk.Frame): #OVERVIEW (known as the Welcome Chamber in the men
         canvas.draw()  # draws the canvas
         canvas.get_tk_widget().pack(fill="both", expand=True, padx=10,
                                     pady=10)  # packs the canvas widget onto the window
-        
+
 class PotionPantryPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg="black")
@@ -378,9 +377,11 @@ class PotionPantryPage(tk.Frame):
         # Title
         title_label = tk.Label(self.frame1, text="Ingredients", font=("Verdana", 14, "bold"),bg="lemon chiffon", fg="medium orchid")
         title_label.pack(pady=10)
+
         # Scrollable frame for ingredient buttons
         button_container = tk.Frame(self.frame1, bg="lemon chiffon")
         button_container.pack(fill="both", expand=True, padx=0, pady=0)
+
         # Canvas and scrollbar
         self.ingredient_canvas = tk.Canvas(button_container, bg="lemon chiffon", highlightthickness=0)
         scrollbar = ttk.Scrollbar(button_container, orient="vertical", command=self.ingredient_canvas.yview)
@@ -806,6 +807,7 @@ class PotionPantryPage(tk.Frame):
             image_with_bg = image_with_bg.resize((400, 400), Image.Resampling.LANCZOS)
             photo = ImageTk.PhotoImage(image_with_bg)
             return photo
+
         except Exception as e:
             print(f"Error loading image for ingredient {ingredient_id}: {e}")
             # Return a black placeholder
@@ -835,6 +837,7 @@ class PotionPantryPage(tk.Frame):
             image_with_bg = image_with_bg.resize((400, 400), Image.Resampling.LANCZOS)
             photo = ImageTk.PhotoImage(image_with_bg)
             return photo
+
         except Exception as e:
             print(f"Error loading image for potion {potion_id}: {e}")
             # Return a black placeholder
@@ -843,22 +846,6 @@ class PotionPantryPage(tk.Frame):
             return photo
 
 class RequestScrollsPage(tk.Frame):  # ORDERS
-    """
-    FEATURES NEEDED:
-        -status legend frame (consists of labels representing the status of orders:requested, ongoing, completed and cannot be completed;
-       on the left)
-        -orders table (consists of column headers: order#, client name, order request, status and action;
-        users cannot modify any of the table values, except action which will be display/update based on inventory quantites;
-
-        action cell states:
-            if the state of the order is ongoing, users can press the cell to complete the order (the cell will say "COMPLETE ORDER");
-            if the state of the order is completed, users cannot interact with the cell (the cell will say "NO ACTION REQUIRED");
-            if the state of the order is requested, it is a new order and the user can press the cell to complete the order (the cell will say "ACCEPT ORDER AND COMPLETE")
-            if the state of the order is cannot be completed, the user cannot interact with the cell (the cell will say "ORDER MORE [item that doesn't meet quantity] TO COMPLETE ORDER")
-
-        a pop up will prompt the user to save after they interact with a cell in the action column)
-        -update button (saves changes (if any) based on orders that the user chose to complete; will save )
-    """
     def __init__(self, parent, controller):
         super().__init__(parent, bg="black")
         self.controller = controller
@@ -931,7 +918,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         )
         refresh_button.pack(pady=10, padx=10, fill="x")
 
-        # ===== RIGHT COLUMN - Order Cards =====
+        # RIGHT COLUMN - Order Cards
         right_container = tk.Frame(main_container, bg="black")
         right_container.pack(side="right", fill="both", expand=True)
 
