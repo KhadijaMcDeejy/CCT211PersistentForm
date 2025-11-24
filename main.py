@@ -650,7 +650,7 @@ class PotionPantryPage(tk.Frame):
         self.potion_effect_text.insert(1.0, potion.effect)
         self.potion_effect_text.config(state="disabled")
 
-        # Update ingredients text - FIXED THIS PART
+        # Update ingredients text
         self.potion_ingredients_text.config(state="normal")
         self.potion_ingredients_text.delete(1.0, tk.END)
 
@@ -1068,7 +1068,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
         insufficient_items = self.get_insufficient_items(order['order_id'])
 
         if order_items:
-            # Create a text widget instead of label for styling individual items
+            # Create a text widget
             items_text = tk.Text(
                 items_frame,
                 wrap="word",
@@ -1295,7 +1295,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
     def complete_order(self, order_id):
         """Complete an ongoing order (move from status 1 to 2)"""
         try:
-            # Update order status to completed
+            # Update order status to complete
             self.storage.data_access.execute(
                 "UPDATE Orders SET order_status = 2 WHERE order_id = ?",
                 (order_id,)
@@ -1401,7 +1401,7 @@ class RequestScrollsPage(tk.Frame):  # ORDERS
     def refresh_orders(self):
         """Safe refresh using shared database connection"""
         try:
-            # Just reload the cards - the shared storage should have latest data
+            # reload the cards - the shared storage should have latest data
             self.load_order_cards()
             messagebox.showinfo("Success", "Orders refreshed with latest data!")
         except Exception as e:
